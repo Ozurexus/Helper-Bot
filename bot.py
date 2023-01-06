@@ -1,18 +1,18 @@
 import asyncio
 import logging
-from aiogram import Bot, Dispatcher, types
+from random import choice, randint
 from config_reader import config
+from aiogram import Bot, Dispatcher, types, Router
+from aiogram.types import Message
 from aiogram.dispatcher.filters import CommandObject, Text
 from aiogram.utils.keyboard import InlineKeyboardBuilder
-from random import randint
 
-# Включаем логирование, чтобы не пропустить важные сообщения
+
 logging.basicConfig(level=logging.INFO)
-# Объект бота
 bot = Bot(token=config.bot_token.get_secret_value(), parse_mode="HTML")
-# Диспетчер
 dp = Dispatcher()
 mylist = []
+router = Router()
 
 
 # @dp.message(commands="start")
@@ -59,25 +59,28 @@ async def cmd_random(message: types.Message):
     )
 
 
-@dp.message(commands=["NOW"])
+@dp.message(commands=["now"])
 async def cmd_now(message: types.Message):
     builder = InlineKeyboardBuilder()
-    builder.add(types.InlineKeyboardButton(text="NOW", callback_data="now_value"),
-                types.InlineKeyboardButton(
+    if message.from_user.id in (1, 1847234646):
+        builder.add(types.InlineKeyboardButton(text="NOW", callback_data="now_value"),
+                    types.InlineKeyboardButton(
                     text="TODAY", callback_data="today_value"),
-                types.InlineKeyboardButton(
+                    types.InlineKeyboardButton(
                     text="TOMORROW", callback_data="tomorrow_value"),
-                )
-    await message.answer(
-        "Click the button",
-        reply_markup=builder.as_markup()
-    )
+                    )
+        await message.answer(
+            "Click the button",
+            reply_markup=builder.as_markup()
+        )
+    else:
+        await message.answer("You are not me >:(")
 
 
 @dp.callback_query(text="random_value")
 async def send_random_value(callback: types.CallbackQuery):
     await callback.message.answer(str(randint(1, 10)))
-    # await call.answer()
+    await callback.answer()
 
 
 @dp.callback_query(text="now_value")
@@ -158,9 +161,9 @@ async def cmd_clear(message: types.Message):
     await message.answer("Список очищен")
 
 
-@dp.message(content_types="text")
-async def echo(message: types.Message):
-    await message.answer(message.text)
+# @dp.message(content_types="text")
+# async def echo(message: types.Message):
+#     await message.answer(message.text)
 # async def extract_data(message: types.Message):
 #     data = {
 #         "url": "<N/A>",
