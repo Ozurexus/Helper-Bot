@@ -1,8 +1,11 @@
 import asyncio
 import logging
-from aiogram import Bot, Dispatcher, types, html
+from aiogram import Bot, Dispatcher, types
 from config_reader import config
 from aiogram.dispatcher.filters import CommandObject, Text
+from aiogram.utils.keyboard import InlineKeyboardBuilder
+from random import randint
+
 # Включаем логирование, чтобы не пропустить важные сообщения
 logging.basicConfig(level=logging.INFO)
 # Объект бота
@@ -12,34 +15,91 @@ dp = Dispatcher()
 mylist = []
 
 
-@dp.message(commands="start")
-async def cmd_start(message: types.Message):
-    kb = [
-        [types.KeyboardButton(text="NOW")],
-        [types.KeyboardButton(text="TODAY")],
-        [types.KeyboardButton(text="TOMORROW")],
-    ]
-    keyboard = types.ReplyKeyboardMarkup(keyboard=kb)
-    await message.answer("WHEN?", reply_markup=keyboard)
+# @dp.message(commands="start")
+# async def cmd_start(message: types.Message):
+#     kb = [
+#         [types.KeyboardButton(text="NOW")],
+#         [types.KeyboardButton(text="TODAY")],
+#         [types.KeyboardButton(text="TOMORROW")],
+#     ]
+#     keyboard = types.ReplyKeyboardMarkup(keyboard=kb)
+#     await message.answer("WHEN?", reply_markup=keyboard)
 
 
-@dp.message(Text(text="NOW"))
-async def cmd_now(message: types.Message):
-    await message.reply("Шилов")
+# @dp.message(Text(text="NOW"))
+# async def cmd_now(message: types.Message):
+#     await message.reply("Шилов")
 
 
-@dp.message(Text(text="TODAY"))
-async def cmd_today(message: types.Message):
-    await message.reply("Шилов + Городецкий")
+# @dp.message(Text(text="TODAY"))
+# async def cmd_today(message: types.Message):
+#     await message.reply("Шилов + Городецкий")
 
-@dp.message(Text(text="TOMORROW"))
-async def cmd_tmrw(message: types.Message):
-    await message.reply("Зуев",reply_markup=types.ReplyKeyboardRemove())
+
+# @dp.message(Text(text="TOMORROW"))
+# async def cmd_tmrw(message: types.Message):
+#     await message.reply("Зуев", reply_markup=types.ReplyKeyboardRemove())
 
 
 @dp.message(commands=["dice"])
 async def cmd_dice(message: types.Message):
     await message.answer_dice(emoji="🎲")
+
+
+@dp.message(commands=["random"])
+async def cmd_random(message: types.Message):
+    builder = InlineKeyboardBuilder()
+    builder.add(types.InlineKeyboardButton(
+        text="Нажми меня",
+        callback_data="random_value")
+    )
+    await message.answer(
+        "Нажмите на кнопку, чтобы бот отправил число от 1 до 10",
+        reply_markup=builder.as_markup()
+    )
+
+
+@dp.message(commands=["NOW"])
+async def cmd_now(message: types.Message):
+    builder = InlineKeyboardBuilder()
+    builder.add(types.InlineKeyboardButton(text="NOW", callback_data="now_value"),
+                types.InlineKeyboardButton(
+                    text="TODAY", callback_data="today_value"),
+                types.InlineKeyboardButton(
+                    text="TOMORROW", callback_data="tomorrow_value"),
+                )
+    await message.answer(
+        "Click the button",
+        reply_markup=builder.as_markup()
+    )
+
+
+@dp.callback_query(text="random_value")
+async def send_random_value(callback: types.CallbackQuery):
+    await callback.message.answer(str(randint(1, 10)))
+    # await call.answer()
+
+
+@dp.callback_query(text="now_value")
+async def send_random_value(callback: types.CallbackQuery):
+    await callback.message.answer("Шилов")
+    # await callback.answer(
+    #     text="Спасибо, что воспользовались ботом!",
+    #     show_alert=True
+    # )
+    await callback.answer()
+
+
+@dp.callback_query(text="today_value")
+async def send_random_value(callback: types.CallbackQuery):
+    await callback.message.answer("Шилов + Городецкий")
+    await callback.answer()
+
+
+@dp.callback_query(text="tomorrow_value")
+async def send_random_value(callback: types.CallbackQuery):
+    await callback.message.answer("Зуев")
+    await callback.answer()
 
 
 @dp.message(commands=["test1"])
