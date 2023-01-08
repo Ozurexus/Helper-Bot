@@ -3,25 +3,26 @@ import logging
 from random import choice, randint
 from config_reader import config
 from aiogram import Bot, Dispatcher, types, Router
-from aiogram.types import Message
 from aiogram.dispatcher.filters import CommandObject, Text
 from aiogram.utils.keyboard import InlineKeyboardBuilder
-from datetime import datetime, timedelta
+from datetime import datetime
 
 logging.basicConfig(level=logging.INFO)
 bot = Bot(token=config.bot_token.get_secret_value(), parse_mode="HTML")
 dp = Dispatcher()
 mylist = []
 router = Router()
-t = [["Monday", "9:00", "303", "Shilov"],
-     ["Monday", "10:40", "108", "Zouev"],
-     ["Tuesday", "12:00", "303", "Shilov"],
-     ["Saturday", "14:00", "319", "Gorodetskiy"],
-     ["Saturday", "21:00", "303", "Shilov"],
-     ["Sunday", "10:00", "319", "Gorodetskiy"],
-     ["Sunday", "12:00", "303", "Shilov"]]
+t = [["Monday", "9:00", "10:00", "303", "Shilov", "differential equations"],
+     ["Monday", "10:40", "12:10", "108", "Zouev", "intro to programming"],
+     ["Tuesday", "12:00", "13:30", "303", "Shilov", "differential equations"],
+     ["Saturday", "14:00", "15:30", "319", "Gorodetskiy", "Mathematical analysis"],
+     ["Saturday", "21:00", "22:30" "303", "Shilov", "differential equations"],
+     ["Sunday", "10:00", "11:30", "319", "Gorodetskiy", "Mathematical analysis"],
+     ["Sunday", "12:00", "13:30", "303", "Shilov", "differential equations"],
+     ["Sunday", "18:00", "19:30", "319", "Gorodetskiy", "Mathematical analysis"],]
 weekdays = ["Monday", "Tuesday", "Wednesday",
             "Thursday", "Friday", "Saturday", "Sunday"]
+
 # @dp.message(commands="start")
 # async def cmd_start(message: types.Message):
 #     kb = [
@@ -31,21 +32,17 @@ weekdays = ["Monday", "Tuesday", "Wednesday",
 #     ]
 #     keyboard = types.ReplyKeyboardMarkup(keyboard=kb)
 #     await message.answer("WHEN?", reply_markup=keyboard)
-
-
 # @dp.message(Text(text="NOW"))
 # async def cmd_now(message: types.Message):
 #     await message.reply("Шилов")
-
-
 # @dp.message(Text(text="TODAY"))
 # async def cmd_today(message: types.Message):
 #     await message.reply("Шилов + Городецкий")
-
-
 # @dp.message(Text(text="TOMORROW"))
 # async def cmd_tmrw(message: types.Message):
 #     await message.reply("Зуев", reply_markup=types.ReplyKeyboardRemove())
+
+
 @ dp.message(commands=["date"])
 async def cmd_date(message: types.Message):
     newdate = datetime.now()
@@ -82,16 +79,13 @@ async def cmd_random(message: types.Message):
 async def cmd_now(message: types.Message):
     builder = InlineKeyboardBuilder()
     # if message.from_user.id in (1, 1847234646):
-    builder.add(types.InlineKeyboardButton(text="NEXT", callback_data="next_value"),
-                types.InlineKeyboardButton(
-                text="TODAY", callback_data="today_value"),
-                types.InlineKeyboardButton(
-                text="TOMORROW", callback_data="tomorrow_value"),
-                )
-    await message.answer(
-        "Click the button",
-        reply_markup=builder.as_markup()
-    )
+    builder.add(types.InlineKeyboardButton(
+        text="NEXT", callback_data="next_value"),
+        types.InlineKeyboardButton(
+        text="TODAY", callback_data="today_value"),
+        types.InlineKeyboardButton(
+        text="TOMORROW", callback_data="tomorrow_value"),)
+    await message.answer("Click the button", reply_markup=builder.as_markup())
     # else:
     #     await message.answer("You are not me >:(")
 
@@ -113,7 +107,9 @@ async def send_next_value(callback: types.CallbackQuery):
     for i in range(len(t)):
         if newdate.strftime("%A") == t[i][0] and newdate.strftime("%H:%M") < t[i][1]:
             pairs = True
-            await callback.message.answer(t[i][0] + "\n" + t[i][1] + "\n" + t[i][2] + "\n" + t[i][3])
+            msg = t[i][0]+"\n"+t[i][5]+"\n"+t[i][4] + \
+                "\n"+t[i][3]+"\n"+t[i][1]+" - "+t[i][2]
+            await callback.message.answer(msg)
             break
     if pairs == False:
         await callback.message.answer("No classes left 🎉")
@@ -126,8 +122,8 @@ async def send_today_value(callback: types.CallbackQuery):
     newdate = datetime.now()
     for i in range(len(t)):
         if newdate.strftime("%A") == t[i][0]:
-            today_string += t[i][0] + "\n" + t[i][1] + \
-                "\n" + t[i][2] + "\n" + t[i][3] + "\n\n"
+            today_string += t[i][0]+"\n"+t[i][5]+"\n" + \
+                t[i][4]+"\n"+t[i][3]+"\n"+t[i][1]+" - "+t[i][2]+"\n\n"
     if today_string == "":
         await callback.message.answer("No classes today 🎉")
     else:
@@ -147,8 +143,8 @@ async def send_tmrw_value(callback: types.CallbackQuery):
             tmrw = weekdays[i+1]
     for i in range(len(t)):
         if tmrw == t[i][0]:
-            tomorrow_string += t[i][0] + "\n" + t[i][1] + \
-                "\n" + t[i][2] + "\n" + t[i][3] + "\n\n"
+            tomorrow_string += t[i][0]+"\n"+t[i][5]+"\n" + \
+                t[i][4]+"\n"+t[i][3]+"\n"+t[i][1]+" - "+t[i][2]+"\n\n"
     if tomorrow_string == "":
         await callback.message.answer("No classes tomorrow 🎉")
     else:
@@ -237,6 +233,11 @@ async def echo(message: types.Message):
 @dp.message(content_types=[types.ContentType.ANIMATION])
 async def echo_gif(message: types.Message):
     await message.reply_animation(message.animation.file_id)
+
+
+@dp.message(content_types=[types.ContentType.STICKER])
+async def echo_sticker(message: types.Message):
+    await message.reply_sticker(message.sticker.file_id)
 
 
 @dp.message(content_types=types.ContentType.NEW_CHAT_MEMBERS)
