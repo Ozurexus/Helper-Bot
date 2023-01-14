@@ -74,7 +74,7 @@ async def send_next_value(callback: types.CallbackQuery):
         if newtime.strftime("%A") == table[i][0] and newtime.strftime("%H:%M") < table[i][1]:
             pairs = True
             msg = table[i][0]+"\n"+table[i][5]+"\n"+table[i][4] + \
-                "\n"+table[i][3]+"\n"+table[i][1]+" - "+table[i][2]
+                "\n"+table[i][3]+"\n"+table[i][1]+" - "+table[i][2]+"\n\n"+"/start"
             await callback.message.answer(msg)
             break
     if pairs == False:
@@ -91,7 +91,8 @@ async def send_today_value(callback: types.CallbackQuery):
             today_string += table[i][0]+"\n"+table[i][5]+"\n" + \
                 table[i][4]+"\n"+table[i][3]+"\n" + \
                 table[i][1]+" - "+table[i][2]+"\n\n"
-    if today_string == "":
+    today_string += "/start"
+    if today_string == "/start":
         await callback.message.answer("No classes today 🎉")
     else:
         await callback.message.answer(today_string)
@@ -113,7 +114,8 @@ async def send_tmrw_value(callback: types.CallbackQuery):
             tomorrow_string += table[i][0]+"\n"+table[i][5]+"\n" + \
                 table[i][4]+"\n"+table[i][3]+"\n" + \
                 table[i][1]+" - "+table[i][2]+"\n\n"
-    if tomorrow_string == "":
+    tomorrow_string += "/start"
+    if tomorrow_string =="/start":
         await callback.message.answer("No classes tomorrow 🎉")
     else:
         await callback.message.answer(tomorrow_string)
