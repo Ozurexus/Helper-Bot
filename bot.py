@@ -1,17 +1,24 @@
 import asyncio
 import logging
-from random import choice, randint
-from config_reader import config
-from aiogram import Bot, Dispatcher, types, Router
-from aiogram.dispatcher.filters import CommandObject, Text
-from aiogram.utils.keyboard import InlineKeyboardBuilder
 from datetime import datetime
-
+from aiogram import Bot, Dispatcher, types
+from aiogram.dispatcher.filters import CommandObject
+from aiogram.utils.keyboard import InlineKeyboardBuilder
+from aiohttp import BasicAuth
+from aiogram.client.session.aiohttp import AiohttpSession
+f = open("info.txt", "r")
+array = f.readlines()
+LOGIN = str(array[0].rstrip())
+PASSWORD = str(array[1].rstrip())
+BOT_TOKEN = str(array[2].rstrip())
+PROXY_URL = str(array[3].rstrip())
+f.close()
 logging.basicConfig(level=logging.INFO)
-bot = Bot(token=config.bot_token.get_secret_value(), parse_mode="HTML")
+auth = BasicAuth(LOGIN, PASSWORD)
+session = AiohttpSession(proxy=(PROXY_URL, auth))
+bot = Bot(token=BOT_TOKEN, session=session)
 dp = Dispatcher()
 mylist = []
-router = Router()
 t = [["Monday", "9:00", "10:00", "303", "Shilov", "differential equations"],
      ["Monday", "10:40", "12:10", "108", "Zouev", "intro to programming"],
      ["Tuesday", "12:00", "13:30", "303", "Shilov", "differential equations"],
@@ -20,62 +27,34 @@ t = [["Monday", "9:00", "10:00", "303", "Shilov", "differential equations"],
      ["Sunday", "10:00", "11:30", "319", "Gorodetskiy", "Mathematical analysis"],
      ["Sunday", "12:00", "13:30", "303", "Shilov", "differential equations"],
      ["Sunday", "18:00", "19:30", "319", "Gorodetskiy", "Mathematical analysis"],]
+# increase all hours by 3
+# for i in range(len(t)):
+#     t[i][1] = str(int(t[i][1][:2]) + 3) + t[i][1][2:]
+#     t[i][2] = str(int(t[i][2][:2]) + 3) + t[i][2][2:]
 weekdays = ["Monday", "Tuesday", "Wednesday",
             "Thursday", "Friday", "Saturday", "Sunday"]
 
-# @dp.message(commands="start")
-# async def cmd_start(message: types.Message):
-#     kb = [
-#         [types.KeyboardButton(text="NOW")],
-#         [types.KeyboardButton(text="TODAY")],
-#         [types.KeyboardButton(text="TOMORROW")],
-#     ]
-#     keyboard = types.ReplyKeyboardMarkup(keyboard=kb)
-#     await message.answer("WHEN?", reply_markup=keyboard)
-# @dp.message(Text(text="NOW"))
-# async def cmd_now(message: types.Message):
-#     await message.reply("Шилов")
-# @dp.message(Text(text="TODAY"))
-# async def cmd_today(message: types.Message):
-#     await message.reply("Шилов + Городецкий")
-# @dp.message(Text(text="TOMORROW"))
-# async def cmd_tmrw(message: types.Message):
-#     await message.reply("Зуев", reply_markup=types.ReplyKeyboardRemove())
 
-
-@ dp.message(commands=["date"])
+@dp.message(commands=["date"])
 async def cmd_date(message: types.Message):
     newdate = datetime.now()
     newdate = newdate.strftime("%d.%m.%Y")
-    await message.answer("Сегодня " + newdate)
+    await message.answer("Today is " + newdate)
 
 
-@ dp.message(commands=["time"])
+@dp.message(commands=["time"])
 async def cmd_time(message: types.Message):
     newtime = datetime.now()
     newtime = newtime.strftime("%H:%M:%S")
-    await message.answer("Сейчас " + newtime)
+    await message.answer("Now is " + newtime)
 
 
-@ dp.message(commands=["dice"])
+@dp.message(commands=["dice"])
 async def cmd_dice(message: types.Message):
     await message.answer_dice(emoji="🎲")
 
 
-@ dp.message(commands=["random"])
-async def cmd_random(message: types.Message):
-    builder = InlineKeyboardBuilder()
-    builder.add(types.InlineKeyboardButton(
-        text="Нажми меня",
-        callback_data="random_value")
-    )
-    await message.answer(
-        "Нажмите на кнопку, чтобы бот отправил число от 1 до 10",
-        reply_markup=builder.as_markup()
-    )
-
-
-@ dp.message(commands=["now"])
+@dp.message(commands=["now"])
 async def cmd_now(message: types.Message):
     builder = InlineKeyboardBuilder()
     # if message.from_user.id in (1, 1847234646):
@@ -90,19 +69,9 @@ async def cmd_now(message: types.Message):
     #     await message.answer("You are not me >:(")
 
 
-@dp.callback_query(text="random_value")
-async def send_random_value(callback: types.CallbackQuery):
-    await callback.message.answer(str(randint(1, 10)))
-    await callback.answer()
-
-
 @dp.callback_query(text="next_value")
 async def send_next_value(callback: types.CallbackQuery):
     newdate = datetime.now()
-    # await callback.answer(
-    #     text="Спасибо, что воспользовались ботом!",
-    #     show_alert=True
-    # )
     pairs = False
     for i in range(len(t)):
         if newdate.strftime("%A") == t[i][0] and newdate.strftime("%H:%M") < t[i][1]:
@@ -165,9 +134,9 @@ async def cmd_test2(message: types.Message):
 @dp.message(commands=["name"])
 async def cmd_name(message: types.Message, command: CommandObject):
     if command.args:
-        await message.answer("Привет, " + command.args+"!")
+        await message.answer("Hello, " + command.args+"!")
     else:
-        await message.answer("Пожалуйста, укажи своё имя после команды /name")
+        await message.answer("Please write your name after /name")
 
 
 @dp.message(commands=["create"])
@@ -211,23 +180,7 @@ async def cmd_clear(message: types.Message):
 @dp.message(content_types="text")
 async def echo(message: types.Message):
     print("\n", message.text, "\n")
-    await message.answer(message.text)
-# async def extract_data(message: types.Message):
-#     data = {
-#         "url": "<N/A>",
-#         "email": "<N/A>",
-#         "code": "<N/A>"
-#     }
-#     entities = message.entities or []
-#     for item in entities:
-#         if item.type in data.keys():
-#             data[item.type] = item.extract(message.text)
-#     await message.reply(
-#         "Вот что я нашёл:\n"
-#         f"URL: {html.quote(data['url'])}\n"
-#         f"E-mail: {html.quote(data['email'])}\n"
-#         f"Пароль: {html.quote(data['code'])}"
-#     )
+    await message.answer("I don't understand you")
 
 
 @dp.message(content_types=[types.ContentType.ANIMATION])
@@ -238,12 +191,6 @@ async def echo_gif(message: types.Message):
 @dp.message(content_types=[types.ContentType.STICKER])
 async def echo_sticker(message: types.Message):
     await message.reply_sticker(message.sticker.file_id)
-
-
-@dp.message(content_types=types.ContentType.NEW_CHAT_MEMBERS)
-async def somebody_added(message: types.Message):
-    for user in message.new_chat_members:
-        await message.reply(f"Привет, {user.full_name}")
 
 
 async def main():
