@@ -6,17 +6,20 @@ from aiogram import Bot, Dispatcher, types
 from aiogram.dispatcher.filters import CommandObject
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 from aiogram.client.session.aiohttp import AiohttpSession
+from pyowm import OWM
 f = open("info.txt", "r")
 array = f.readlines()
 LOGIN = str(array[0].rstrip())
 PASSWORD = str(array[1].rstrip())
 PROXY_URL = str(array[2].rstrip())
 BOT_TOKEN = str(array[3].rstrip())
+API_KEY = str(array[4].rstrip())
 f.close()
 logging.basicConfig(level=logging.INFO)
 auth = BasicAuth(LOGIN, PASSWORD)
 session = AiohttpSession(proxy=(PROXY_URL, auth))
 bot = Bot(token=BOT_TOKEN, session=session)
+# bot = Bot(token=BOT_TOKEN)
 dp = Dispatcher()
 mylist = []
 table = [["Monday", "9:00", "10:00", "303", "Shilov", "differential equations"],
@@ -74,7 +77,8 @@ async def send_next_value(callback: types.CallbackQuery):
         if newtime.strftime("%A") == table[i][0] and newtime.strftime("%H:%M") < table[i][1]:
             pairs = True
             msg = table[i][0]+"\n"+table[i][5]+"\n"+table[i][4] + \
-                "\n"+table[i][3]+"\n"+table[i][1]+" - "+table[i][2]+"\n\n"+"/start"
+                "\n"+table[i][3]+"\n"+table[i][1] + \
+                " - "+table[i][2]+"\n\n"+"/start"
             await callback.message.answer(msg)
             break
     if pairs == False:
@@ -115,7 +119,7 @@ async def send_tmrw_value(callback: types.CallbackQuery):
                 table[i][4]+"\n"+table[i][3]+"\n" + \
                 table[i][1]+" - "+table[i][2]+"\n\n"
     tomorrow_string += "/start"
-    if tomorrow_string =="/start":
+    if tomorrow_string == "/start":
         await callback.message.answer("No classes tomorrow 🎉")
     else:
         await callback.message.answer(tomorrow_string)
@@ -171,6 +175,19 @@ async def cmd_remove(message: types.Message, command: CommandObject):
 async def cmd_clear(message: types.Message):
     mylist.clear()
     await message.answer("Список очищен")
+
+
+@dp.message(commands=["weather"])
+async def cmd_weather(message: types.Message, command: CommandObject):
+    if command.args:
+        owm = OWM(API_KEY)
+        mgr = owm.weather_manager()
+        observation = mgr.weather_at_place(command.args)
+        w = observation.weather
+        temp = w.temperature('celsius')["temp"]
+        await message.answer(f"In {command.args} is currently {w.detailed_status}.\nAir temperature: {temp}°C")
+    else:
+        await message.answer("Please write your city after /weather")
 
 
 @dp.message(content_types="text")
