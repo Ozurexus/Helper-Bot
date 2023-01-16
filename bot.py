@@ -6,6 +6,7 @@ from aiogram import Bot, Dispatcher, types
 from aiogram.dispatcher.filters import CommandObject
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 from aiogram.client.session.aiohttp import AiohttpSession
+from aiogram.methods import send_location
 from pyowm import OWM
 f = open("info.txt", "r")
 array = f.readlines()
@@ -64,7 +65,7 @@ async def cmd_start(message: types.Message):
         text="TODAY", callback_data="today_value"),
         types.InlineKeyboardButton(
         text="TOMORROW", callback_data="tomorrow_value"),)
-    await message.answer("Click the button", reply_markup=builder.as_markup())
+    await message.answer("BS21-SD-01 Schedule", reply_markup=builder.as_markup())
     # else:
     #     await message.answer("You are not me >:(")
 
@@ -139,44 +140,6 @@ async def cmd_name(message: types.Message, command: CommandObject):
         await message.answer("Please write your name after /name")
 
 
-@dp.message(commands=["create"])
-async def cmd_create(message: types.Message):
-    mylist = []
-    await message.answer("Список создан")
-
-
-@dp.message(commands=["add"])
-async def cmd_add(message: types.Message, command: CommandObject):
-    if command.args:
-        mylist.append(command.args)
-        await message.answer("Добавлено число " + command.args + " в список")
-    else:
-        await message.answer("Пожалуйста, укажи число после команды /add")
-
-
-@dp.message(commands=["list"])
-async def cmd_list(message: types.Message):
-    await message.answer(f"Ваш список: {mylist}")
-
-
-@dp.message(commands=["remove"])
-async def cmd_remove(message: types.Message, command: CommandObject):
-    if command.args and command.args in mylist:
-        mylist.remove(command.args)
-        await message.answer("Удалено число " + command.args + " из списка")
-    else:
-        if command.args:
-            await message.answer("Число " + command.args + " не найдено в списке")
-        else:
-            await message.answer("Пожалуйста, укажи число после команды /remove")
-
-
-@dp.message(commands=["clear"])
-async def cmd_clear(message: types.Message):
-    mylist.clear()
-    await message.answer("Список очищен")
-
-
 @dp.message(commands=["weather"])
 async def cmd_weather(message: types.Message, command: CommandObject):
     if command.args:
@@ -188,6 +151,18 @@ async def cmd_weather(message: types.Message, command: CommandObject):
         await message.answer(f"In {command.args} is currently {w.detailed_status}.\nAir temperature: {temp}°C")
     else:
         await message.answer("Please write your city after /weather")
+
+
+@dp.message(content_types=['location'])
+async def handle_location(message: types.Message):
+    lat = message.location.latitude
+    lon = message.location.longitude
+    owm = OWM(API_KEY)
+    mgr = owm.weather_manager()
+    observation = mgr.weather_at_coords(lat, lon)
+    w = observation.weather
+    temp = w.temperature('celsius')["temp"]
+    await message.answer(f"Air temperature at latitude: {lat},longitude: {lon}: \n{temp}°C")
 
 
 @dp.message(content_types="text")
