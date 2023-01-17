@@ -10,18 +10,21 @@ from aiogram.methods import send_location
 from pyowm import OWM
 f = open("info.txt", "r")
 array = f.readlines()
+counter = 0
+prev_message_id = 0
 LOGIN = str(array[0].rstrip())
 PASSWORD = str(array[1].rstrip())
 PROXY_URL = str(array[2].rstrip())
 BOT_TOKEN = str(array[3].rstrip())
 API_KEY = str(array[4].rstrip())
 f.close()
-# logging.basicConfig(level=logging.INFO)
-# auth = BasicAuth(LOGIN, PASSWORD)
-# session = AiohttpSession(proxy=(PROXY_URL, auth))
-# bot = Bot(token=BOT_TOKEN, session=session)
-bot = Bot(token=BOT_TOKEN)
+logging.basicConfig(level=logging.INFO)
+auth = BasicAuth(LOGIN, PASSWORD)
+session = AiohttpSession(proxy=(PROXY_URL, auth))
+bot = Bot(token=BOT_TOKEN, session=session)
+# bot = Bot(token=BOT_TOKEN)
 dp = Dispatcher()
+owm = OWM(API_KEY)
 mylist = []
 table = [["Monday", "9:20", "10:50", "ONLINE", "Adil Khan",
           "Introduction to Machine Learning (lec)"],
@@ -48,31 +51,6 @@ weekdays = ["Monday", "Tuesday", "Wednesday",
             "Thursday", "Friday", "Saturday", "Sunday"]
 
 
-@dp.message(commands=["date"])
-async def cmd_date(message: types.Message):
-    newdate = datetime.now()+timedelta(hours=3)
-    newdate = newdate.strftime("%d.%m.%Y")
-    await message.answer("Today is " + newdate)
-
-
-@dp.message(commands=["time"])
-async def cmd_time(message: types.Message):
-    newtime = datetime.now()+timedelta(hours=3)
-    newtime = newtime.strftime("%H:%M:%S")
-    await message.answer("Now is " + newtime)
-
-
-@dp.message(commands=["dice"])
-async def cmd_dice(message: types.Message):
-    await message.answer_dice(emoji="🎲")
-
-
-@dp.message(commands=["idtest"])
-async def cmd_idtest(message: types.Message):
-    msg = "Your id is "+str(message.from_user.id)
-    await message.answer(msg)
-
-
 @dp.message(commands=["start"])
 async def cmd_start(message: types.Message):
     builder = InlineKeyboardBuilder()
@@ -88,7 +66,7 @@ async def cmd_start(message: types.Message):
     await message.answer("BS21-SD-01 Schedule:", reply_markup=builder.as_markup())
 
 
-@dp.callback_query(text="next_value")  # TODO refactor
+@dp.callback_query(text="next_value")
 async def send_next_value(callback: types.CallbackQuery):
     newtime = datetime.now() + timedelta(hours=3)
     next = False
@@ -126,7 +104,19 @@ async def send_next_value(callback: types.CallbackQuery):
     else:
         msg += "/start"
         await callback.message.answer(msg)
+    # print(callback.message.message_id)
+    # # counter += 1
+    # global prev_message_id
+    # if prev_message_id != 0:
+    #     await bot.delete_message(callback.message.chat.id, prev_message_id)
+    # #     # counter = 0
+    # prev_message_id = int(callback.message.message_id)
     await callback.answer()
+
+
+# @dp.callback_query(text="test")
+# async def test_call(callback: types.CallbackQuery):
+#     await callback.message.delete()
 
 
 @dp.callback_query(text="today_value")
@@ -147,6 +137,13 @@ async def send_today_value(callback: types.CallbackQuery):
         await callback.message.answer("No classes today 🎉")
     else:
         await callback.message.answer(today_string)
+    print('\n', callback.message.message_id, callback.message.chat.id, '\n')
+    # counter += 1
+    # global prev_message_id
+    # if prev_message_id != 0:
+    #     await bot.delete_message(callback.message.chat.id, prev_message_id)
+    #     # counter = 0
+    # prev_message_id = callback.message.message_id
     await callback.answer()
 
 
@@ -174,6 +171,13 @@ async def send_tmrw_value(callback: types.CallbackQuery):
         await callback.message.answer("No classes tomorrow 🎉")
     else:
         await callback.message.answer(tomorrow_string)
+    print('\n', callback.message.message_id, callback.message.chat.id, '\n')
+    # counter += 1
+    # global prev_message_id
+    # if prev_message_id != 0:
+    #     await bot.delete_message(callback.message.chat.id, prev_message_id)
+    #     # counter = 0
+    # prev_message_id = callback.message.message_id
     await callback.answer()
 
 
@@ -181,15 +185,15 @@ async def send_tmrw_value(callback: types.CallbackQuery):
 async def send_choose_value(callback: types.CallbackQuery):
     builder = InlineKeyboardBuilder()
     builder.add(types.InlineKeyboardButton(
-        text="MONDAY", callback_data="monday_value"),
+        text="MON", callback_data="monday_value"),
         types.InlineKeyboardButton(
-        text="TUESDAY", callback_data="tuesday_value"),
+        text="TUE", callback_data="tuesday_value"),
         types.InlineKeyboardButton(
-        text="WEDNESDAY", callback_data="wednesday_value"),
+        text="WED", callback_data="wednesday_value"),
         types.InlineKeyboardButton(
-        text="THURSDAY", callback_data="thursday_value"),
+        text="THUR", callback_data="thursday_value"),
         types.InlineKeyboardButton(
-        text="FRIDAY", callback_data="friday_value"),
+        text="FRI", callback_data="friday_value"),
     )
     await callback.message.answer("Choose a weekday:", reply_markup=builder.as_markup())
 
@@ -294,6 +298,36 @@ async def send_friday_value(callback: types.CallbackQuery):
     await callback.answer()
 
 
+@dp.message(commands=["delete"])
+async def cmd_delete(message: types.Message):
+    await bot.delete_message(message.chat.id, message.message_id)
+
+
+@dp.message(commands=["date"])
+async def cmd_date(message: types.Message):
+    newdate = datetime.now()+timedelta(hours=3)
+    newdate = newdate.strftime("%d.%m.%Y")
+    await message.answer("Today is " + newdate)
+
+
+@dp.message(commands=["time"])
+async def cmd_time(message: types.Message):
+    newtime = datetime.now()+timedelta(hours=3)
+    newtime = newtime.strftime("%H:%M:%S")
+    await message.answer("Now is " + newtime)
+
+
+@dp.message(commands=["dice"])
+async def cmd_dice(message: types.Message):
+    await message.answer_dice(emoji="🎲")
+
+
+@dp.message(commands=["id"])
+async def cmd_id(message: types.Message):
+    msg = "Your id is "+str(message.from_user.id)
+    await message.answer(msg)
+
+
 @dp.message(commands=["test"])
 async def cmd_test1(message: types.Message):
     await message.reply("Test")
@@ -310,7 +344,6 @@ async def cmd_name(message: types.Message, command: CommandObject):
 @dp.message(commands=["weather"])
 async def cmd_weather(message: types.Message, command: CommandObject):
     if command.args:
-        owm = OWM(API_KEY)
         mgr = owm.weather_manager()
         observation = mgr.weather_at_place(command.args)
         w = observation.weather
@@ -324,7 +357,6 @@ async def cmd_weather(message: types.Message, command: CommandObject):
 async def handle_location(message: types.Message):
     lat = message.location.latitude
     lon = message.location.longitude
-    owm = OWM(API_KEY)
     mgr = owm.weather_manager()
     observation = mgr.weather_at_coords(lat, lon)
     w = observation.weather
