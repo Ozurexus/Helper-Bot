@@ -16,11 +16,11 @@ PROXY_URL = str(array[2].rstrip())
 BOT_TOKEN = str(array[3].rstrip())
 API_KEY = str(array[4].rstrip())
 f.close()
-logging.basicConfig(level=logging.INFO)
-auth = BasicAuth(LOGIN, PASSWORD)
-session = AiohttpSession(proxy=(PROXY_URL, auth))
-bot = Bot(token=BOT_TOKEN, session=session)
-# bot = Bot(token=BOT_TOKEN)
+# logging.basicConfig(level=logging.INFO)
+# auth = BasicAuth(LOGIN, PASSWORD)
+# session = AiohttpSession(proxy=(PROXY_URL, auth))
+# bot = Bot(token=BOT_TOKEN, session=session)
+bot = Bot(token=BOT_TOKEN)
 dp = Dispatcher()
 mylist = []
 table = [["Monday", "9:20", "10:50", "ONLINE", "Adil Khan",
@@ -41,7 +41,7 @@ table = [["Monday", "9:20", "10:50", "ONLINE", "Adil Khan",
              "Gerald B. Imbugwa", "Networks (lab)"],
          ["Friday", "9:20", "10:50", "ONLINE", "Kirill Saltanov",
              "System and Network Administration (lec))"],
-         ["Friday", "13:00", "14:30" "101", "Awwal Ishiaku",
+         ["Friday", "13:00", "14:30", "101", "Awwal Ishiaku",
          "System and Network Administration (lab)"],]
 
 weekdays = ["Monday", "Tuesday", "Wednesday",
@@ -67,49 +67,56 @@ async def cmd_dice(message: types.Message):
     await message.answer_dice(emoji="🎲")
 
 
+@dp.message(commands=["idtest"])
+async def cmd_idtest(message: types.Message):
+    msg = "Your id is "+str(message.from_user.id)
+    await message.answer(msg)
+
+
 @dp.message(commands=["start"])
 async def cmd_start(message: types.Message):
     builder = InlineKeyboardBuilder()
-    # if message.from_user.id in (1, 1847234646):
     builder.add(types.InlineKeyboardButton(
         text="NEXT", callback_data="next_value"),
         types.InlineKeyboardButton(
         text="TODAY", callback_data="today_value"),
         types.InlineKeyboardButton(
-        text="TOMORROW", callback_data="tomorrow_value"),)
-    await message.answer("BS21-SD-01 Schedule", reply_markup=builder.as_markup())
+        text="TOMORROW", callback_data="tomorrow_value"),
+        types.InlineKeyboardButton(
+        text="WEEK", callback_data="choose_value"),
+    )
+    await message.answer("BS21-SD-01 Schedule:", reply_markup=builder.as_markup())
 
 
-@dp.callback_query(text="next_value")  # TODO remove multiple day messages
+@dp.callback_query(text="next_value")  # TODO refactor
 async def send_next_value(callback: types.CallbackQuery):
     newtime = datetime.now() + timedelta(hours=3)
     next = False
-    msg = ''
     ongoing = False
+    weekday = False
+    msg = ''
     for i in range(len(table)):
         if newtime.strftime("%A") == table[i][0]:
+            if weekday == False:
+                msg += table[i][0]+":\n"
+                weekday = True
+            msg += table[i][5]+"\n"+table[i][4] + \
+                "\n"+table[i][3]+"\n"+table[i][1] + \
+                " - "+table[i][2]+"\n"
+            tmptime = newtime.strftime("%H:%M").split(":")
+            tmptime = int(tmptime[0])*3600+int(tmptime[1])*60
             if table[i][1] < newtime.strftime("%H:%M") < table[i][2] and ongoing == False:
-                msg += table[i][0]+"\n"+table[i][5]+"\n"+table[i][4] + \
-                    "\n"+table[i][3]+"\n"+table[i][1] + \
-                    " - "+table[i][2]+"\n"
-                tmptime = newtime.strftime("%H:%M").split(":")
+                ongoing = True
                 ttime = table[i][2].split(":")
                 ttime = int(ttime[0])*3600+int(ttime[1])*60
-                tmptime = int(tmptime[0])*3600+int(tmptime[1])*60
                 diff = (ttime-tmptime)
                 hourdiff = diff//3600
                 mindiff = (diff % 3600)//60
                 msg += "Time left: "+str(hourdiff)+":"+str(mindiff)+"\n\n"
-                ongoing = True
-            elif next == False and table[i][1] > newtime.strftime("%H:%M"):
+            elif table[i][1] > newtime.strftime("%H:%M") and next == False:
                 next = True
-                msg += table[i][0]+"\n"+table[i][5]+"\n"+table[i][4] + \
-                    "\n"+table[i][3]+"\n"+table[i][1] + \
-                    " - "+table[i][2]+"\n"
-                tmptime = newtime.strftime("%H:%M").split(":")
                 ttime = table[i][1].split(":")
                 ttime = int(ttime[0])*3600+int(ttime[1])*60
-                tmptime = int(tmptime[0])*3600+int(tmptime[1])*60
                 diff = (ttime-tmptime)
                 hourdiff = diff//3600
                 mindiff = (diff % 3600)//60
@@ -122,13 +129,17 @@ async def send_next_value(callback: types.CallbackQuery):
     await callback.answer()
 
 
-@dp.callback_query(text="today_value")  # TODO remove multiple day messages
+@dp.callback_query(text="today_value")
 async def send_today_value(callback: types.CallbackQuery):
     today_string = ""
+    weekday = False
     newdate = datetime.now()+timedelta(hours=3)
     for i in range(len(table)):
         if newdate.strftime("%A") == table[i][0]:
-            today_string += table[i][0]+"\n"+table[i][5]+"\n" + \
+            if weekday == False:
+                today_string += table[i][0]+":\n"
+                weekday = True
+            today_string += table[i][5]+"\n" + \
                 table[i][4]+"\n"+table[i][3]+"\n" + \
                 table[i][1]+" - "+table[i][2]+"\n\n"
     today_string += "/start"
@@ -139,11 +150,12 @@ async def send_today_value(callback: types.CallbackQuery):
     await callback.answer()
 
 
-@dp.callback_query(text="tomorrow_value")  # TODO remove multiple day messages
+@dp.callback_query(text="tomorrow_value")
 async def send_tmrw_value(callback: types.CallbackQuery):
     tomorrow_string = ""
     newdate = datetime.now()+timedelta(hours=3)
     tmrw = ""
+    weekday = False
     for i in range(len(weekdays)):
         if newdate.strftime("%A") == weekdays[i] and i == len(weekdays)-1:
             tmrw = weekdays[0]
@@ -151,7 +163,10 @@ async def send_tmrw_value(callback: types.CallbackQuery):
             tmrw = weekdays[i+1]
     for i in range(len(table)):
         if tmrw == table[i][0]:
-            tomorrow_string += table[i][0]+"\n"+table[i][5]+"\n" + \
+            if weekday == False:
+                tomorrow_string += table[i][0]+":\n"
+                weekday = True
+            tomorrow_string += table[i][5]+"\n" + \
                 table[i][4]+"\n"+table[i][3]+"\n" + \
                 table[i][1]+" - "+table[i][2]+"\n\n"
     tomorrow_string += "/start"
@@ -159,6 +174,123 @@ async def send_tmrw_value(callback: types.CallbackQuery):
         await callback.message.answer("No classes tomorrow 🎉")
     else:
         await callback.message.answer(tomorrow_string)
+    await callback.answer()
+
+
+@dp.callback_query(text="choose_value")
+async def send_choose_value(callback: types.CallbackQuery):
+    builder = InlineKeyboardBuilder()
+    builder.add(types.InlineKeyboardButton(
+        text="MONDAY", callback_data="monday_value"),
+        types.InlineKeyboardButton(
+        text="TUESDAY", callback_data="tuesday_value"),
+        types.InlineKeyboardButton(
+        text="WEDNESDAY", callback_data="wednesday_value"),
+        types.InlineKeyboardButton(
+        text="THURSDAY", callback_data="thursday_value"),
+        types.InlineKeyboardButton(
+        text="FRIDAY", callback_data="friday_value"),
+    )
+    await callback.message.answer("Choose a weekday:", reply_markup=builder.as_markup())
+
+
+@dp.callback_query(text="monday_value")
+async def send_monday_value(callback: types.CallbackQuery):
+    monday_string = ""
+    weekday = False
+    for i in range(len(table)):
+        if "Monday" == table[i][0]:
+            if weekday == False:
+                monday_string += table[i][0]+":\n"
+                weekday = True
+            monday_string += table[i][5]+"\n" + \
+                table[i][4]+"\n"+table[i][3]+"\n" + \
+                table[i][1]+" - "+table[i][2]+"\n\n"
+    monday_string += "/start"
+    if monday_string == "/start":
+        await callback.message.answer("No classes on Monday 🎉")
+    else:
+        await callback.message.answer(monday_string)
+    await callback.answer()
+
+
+@dp.callback_query(text="tuesday_value")
+async def send_tuesday_value(callback: types.CallbackQuery):
+    tuesday_string = ""
+    weekday = False
+    for i in range(len(table)):
+        if "Tuesday" == table[i][0]:
+            if weekday == False:
+                tuesday_string += table[i][0]+":\n"
+                weekday = True
+            tuesday_string += table[i][5]+"\n" + \
+                table[i][4]+"\n"+table[i][3]+"\n" + \
+                table[i][1]+" - "+table[i][2]+"\n\n"
+    tuesday_string += "/start"
+    if tuesday_string == "/start":
+        await callback.message.answer("No classes on Tuesday 🎉")
+    else:
+        await callback.message.answer(tuesday_string)
+    await callback.answer()
+
+
+@dp.callback_query(text="wednesday_value")
+async def send_wednesday_value(callback: types.CallbackQuery):
+    wednesday_string = ""
+    weekday = False
+    for i in range(len(table)):
+        if "Wednesday" == table[i][0]:
+            if weekday == False:
+                wednesday_string += table[i][0]+":\n"
+                weekday = True
+            wednesday_string += table[i][5]+"\n" + \
+                table[i][4]+"\n"+table[i][3]+"\n" + \
+                table[i][1]+" - "+table[i][2]+"\n\n"
+    wednesday_string += "/start"
+    if wednesday_string == "/start":
+        await callback.message.answer("No classes on Wednesday 🎉")
+    else:
+        await callback.message.answer(wednesday_string)
+    await callback.answer()
+
+
+@dp.callback_query(text="thursday_value")
+async def send_thursday_value(callback: types.CallbackQuery):
+    thursday_string = ""
+    weekday = False
+    for i in range(len(table)):
+        if "Thursday" == table[i][0]:
+            if weekday == False:
+                thursday_string += table[i][0]+":\n"
+                weekday = True
+            thursday_string += table[i][5]+"\n" + \
+                table[i][4]+"\n"+table[i][3]+"\n" + \
+                table[i][1]+" - "+table[i][2]+"\n\n"
+    thursday_string += "/start"
+    if thursday_string == "/start":
+        await callback.message.answer("No classes on Thursday 🎉")
+    else:
+        await callback.message.answer(thursday_string)
+    await callback.answer()
+
+
+@dp.callback_query(text="friday_value")
+async def send_friday_value(callback: types.CallbackQuery):
+    friday_string = ""
+    weekday = False
+    for i in range(len(table)):
+        if "Friday" == table[i][0]:
+            if weekday == False:
+                friday_string += table[i][0]+":\n"
+                weekday = True
+            friday_string += table[i][5]+"\n" + \
+                table[i][4]+"\n"+table[i][3]+"\n" + \
+                table[i][1]+" - "+table[i][2]+"\n\n"
+    friday_string += "/start"
+    if friday_string == "/start":
+        await callback.message.answer("No classes on Friday 🎉")
+    else:
+        await callback.message.answer(friday_string)
     await callback.answer()
 
 
