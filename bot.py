@@ -23,15 +23,27 @@ bot = Bot(token=BOT_TOKEN, session=session)
 # bot = Bot(token=BOT_TOKEN)
 dp = Dispatcher()
 mylist = []
-table = [["Monday", "9:00", "10:00", "303", "Shilov", "differential equations"],
-         ["Monday", "10:40", "12:10", "108", "Zouev", "intro to programming"],
-         ["Tuesday", "12:00", "13:30", "303", "Shilov", "differential equations"],
-         ["Saturday", "14:00", "15:30", "319",
-             "Gorodetskiy", "Mathematical analysis"],
-         ["Saturday", "21:00", "22:30", "303", "Shilov", "differential equations"],
-         ["Sunday", "10:00", "11:30", "319", "Gorodetskiy", "Mathematical analysis"],
-         ["Sunday", "12:00", "13:30", "303", "Shilov", "differential equations"],
-         ["Sunday", "18:00", "19:30", "319", "Gorodetskiy", "Mathematical analysis"],]
+table = [["Monday", "9:20", "10:50", "ONLINE", "Adil Khan",
+          "Introduction to Machine Learning (lec)"],
+         ["Monday", "13:00", "14:30", "317", "Roman Garaev",
+             "Introduction to Machine Learning (lab)"],
+         ["Tuesday", "11:00", "12:30", "ONLINE",
+             "Darko Bozhinoski", "Databases (lec)"],
+         ["Tuesday", "13:00", "14:30", "106",
+             "Hamza Salem", "Databases (tut)"],
+         ["Tuesday", "14:40", "16:10", "312",
+             "Munir Makhmutov", "Databases (lab)"],
+         ["Wednesday", "11:00", "12:30", "ONLINE",
+             "Paolo Ciancarini", "Networks (lec)"],
+         ["Wednesday", "13:00", "14:30", "105",
+             "Artem Burmyakov", "Networks (tut)"],
+         ["Wednesday", "14:40", "16:10", "314",
+             "Gerald B. Imbugwa", "Networks (lab)"],
+         ["Friday", "9:20", "10:50", "ONLINE", "Kirill Saltanov",
+             "System and Network Administration (lec))"],
+         ["Friday", "13:00", "14:30" "101", "Awwal Ishiaku",
+         "System and Network Administration (lab)"],]
+
 weekdays = ["Monday", "Tuesday", "Wednesday",
             "Thursday", "Friday", "Saturday", "Sunday"]
 
@@ -66,28 +78,51 @@ async def cmd_start(message: types.Message):
         types.InlineKeyboardButton(
         text="TOMORROW", callback_data="tomorrow_value"),)
     await message.answer("BS21-SD-01 Schedule", reply_markup=builder.as_markup())
-    # else:
-    #     await message.answer("You are not me >:(")
 
 
-@dp.callback_query(text="next_value")
+@dp.callback_query(text="next_value")  # TODO remove multiple day messages
 async def send_next_value(callback: types.CallbackQuery):
-    newtime = datetime.now()+timedelta(hours=3)
-    pairs = False
+    newtime = datetime.now() + timedelta(hours=3)
+    next = False
+    msg = ''
+    ongoing = False
     for i in range(len(table)):
-        if newtime.strftime("%A") == table[i][0] and newtime.strftime("%H:%M") < table[i][1]:
-            pairs = True
-            msg = table[i][0]+"\n"+table[i][5]+"\n"+table[i][4] + \
-                "\n"+table[i][3]+"\n"+table[i][1] + \
-                " - "+table[i][2]+"\n\n"+"/start"
-            await callback.message.answer(msg)
-            break
-    if pairs == False:
+        if newtime.strftime("%A") == table[i][0]:
+            if table[i][1] < newtime.strftime("%H:%M") < table[i][2] and ongoing == False:
+                msg += table[i][0]+"\n"+table[i][5]+"\n"+table[i][4] + \
+                    "\n"+table[i][3]+"\n"+table[i][1] + \
+                    " - "+table[i][2]+"\n"
+                tmptime = newtime.strftime("%H:%M").split(":")
+                ttime = table[i][2].split(":")
+                ttime = int(ttime[0])*3600+int(ttime[1])*60
+                tmptime = int(tmptime[0])*3600+int(tmptime[1])*60
+                diff = (ttime-tmptime)
+                hourdiff = diff//3600
+                mindiff = (diff % 3600)//60
+                msg += "Time left: "+str(hourdiff)+":"+str(mindiff)+"\n\n"
+                ongoing = True
+            elif next == False and table[i][1] > newtime.strftime("%H:%M"):
+                next = True
+                msg += table[i][0]+"\n"+table[i][5]+"\n"+table[i][4] + \
+                    "\n"+table[i][3]+"\n"+table[i][1] + \
+                    " - "+table[i][2]+"\n"
+                tmptime = newtime.strftime("%H:%M").split(":")
+                ttime = table[i][1].split(":")
+                ttime = int(ttime[0])*3600+int(ttime[1])*60
+                tmptime = int(tmptime[0])*3600+int(tmptime[1])*60
+                diff = (ttime-tmptime)
+                hourdiff = diff//3600
+                mindiff = (diff % 3600)//60
+                msg += "Time until: "+str(hourdiff)+":"+str(mindiff)+"\n\n"
+    if next == False and ongoing == False:
         await callback.message.answer("No classes left 🎉")
+    else:
+        msg += "/start"
+        await callback.message.answer(msg)
     await callback.answer()
 
 
-@dp.callback_query(text="today_value")
+@dp.callback_query(text="today_value")  # TODO remove multiple day messages
 async def send_today_value(callback: types.CallbackQuery):
     today_string = ""
     newdate = datetime.now()+timedelta(hours=3)
@@ -104,7 +139,7 @@ async def send_today_value(callback: types.CallbackQuery):
     await callback.answer()
 
 
-@dp.callback_query(text="tomorrow_value")
+@dp.callback_query(text="tomorrow_value")  # TODO remove multiple day messages
 async def send_tmrw_value(callback: types.CallbackQuery):
     tomorrow_string = ""
     newdate = datetime.now()+timedelta(hours=3)
@@ -163,6 +198,11 @@ async def handle_location(message: types.Message):
     w = observation.weather
     temp = w.temperature('celsius')["temp"]
     await message.answer(f"Air temperature at latitude: {lat},longitude: {lon}: \n{temp}°C")
+
+
+# @ dp.message(content_types=['sendloco'])
+# async def handle_location(message: types.Message):
+#     pass
 
 
 @dp.message(content_types="text")
