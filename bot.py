@@ -1,13 +1,13 @@
 import asyncio
 import logging
+from pyowm import OWM
 from datetime import datetime, timedelta
 from aiohttp import BasicAuth
 from aiogram import Bot, Dispatcher, types
-from aiogram.dispatcher.filters import CommandObject
+from aiogram.dispatcher.filters import CommandObject, Text
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 from aiogram.client.session.aiohttp import AiohttpSession
-from aiogram.methods import send_location
-from pyowm import OWM
+# from aiogram.methods import send_location
 f = open("info.txt", "r")
 array = f.readlines()
 counter = 0
@@ -18,10 +18,12 @@ PROXY_URL = str(array[2].rstrip())
 BOT_TOKEN = str(array[3].rstrip())
 API_KEY = str(array[4].rstrip())
 f.close()
+
 logging.basicConfig(level=logging.INFO)
 auth = BasicAuth(LOGIN, PASSWORD)
 session = AiohttpSession(proxy=(PROXY_URL, auth))
 bot = Bot(token=BOT_TOKEN, session=session)
+
 # bot = Bot(token=BOT_TOKEN)
 dp = Dispatcher()
 owm = OWM(API_KEY)
@@ -50,8 +52,81 @@ table = [["Monday", "9:20", "10:50", "ONLINE", "Adil Khan",
 weekdays = ["Monday", "Tuesday", "Wednesday",
             "Thursday", "Friday", "Saturday", "Sunday"]
 
+user_data = {}
+users = []
+
+
+def get_keyboard():
+    buttons = [[
+        types.InlineKeyboardButton(text="NEXT", callback_data="num_next"),
+        types.InlineKeyboardButton(
+            text="TODAY", callback_data="num_today"),
+        types.InlineKeyboardButton(
+            text="TOMORROW", callback_data="num_tomorrow"),
+        types.InlineKeyboardButton(text="WEEK", callback_data="num_week"),]]
+    keyboard = types.InlineKeyboardMarkup(inline_keyboard=buttons)
+    return keyboard
+
+
+async def update_num_text(message: types.Message, new_value: int):
+    await message.edit_text(new_value, reply_markup=get_keyboard())
+
 
 @dp.message(commands=["start"])
+async def cmd_numbers(message: types.Message):
+    if message.from_user.id not in users:
+        users.append(message.from_user.id)
+    user_data[message.from_user.id] = 0
+    await message.answer("BS21-SD-01 Schedule:", reply_markup=get_keyboard())
+
+
+@dp.message(commands=["show"])
+async def cmd_show(message: types.Message):
+    if message.from_user.id == 1847234646:
+        msg = ''
+        if len(users) == 0:
+            msg = "No users"
+        else:
+            for i in range(len(users)):
+                msg += str(users[i])+'\n'
+        await message.answer(msg)
+    else:
+        await message.answer("You are not authorized to use this command.")
+
+
+@dp.callback_query(Text(text_startswith="num_"))
+async def callbacks_num(callback: types.CallbackQuery):
+    user_value = user_data.get(callback.from_user.id, 0)
+    action = callback.data.split("_")[1]
+    if action == "next":
+        user_data[callback.from_user.id] = get_next()
+    elif action == "today":
+        user_data[callback.from_user.id] = get_today()
+    elif action == "tomorrow":
+        user_data[callback.from_user.id] = get_tomorrow()
+    elif action == "week":
+        user_data[callback.from_user.id] = "NO LOL"
+    await update_num_text(callback.message, user_data[callback.from_user.id])
+    await callback.answer()
+
+
+@dp.message(commands=["cleanup"])
+async def cmd_cleanup(message: types.Message):
+    if message.from_user.id == 1847234646:
+        msg = ''
+        for i in user_data:
+            msg += str(i)+': '+str(user_data[i])+'\n'
+        await message.answer(msg)
+        user_data.clear()
+        msg = ''
+        for i in user_data:
+            msg += str(i)+': '+str(user_data[i])+'\n'
+        await message.answer(msg)
+    else:
+        await message.answer("You are not authorized to use this command.")
+
+
+@dp.message(commands=["obsolete"])
 async def cmd_start(message: types.Message):
     builder = InlineKeyboardBuilder()
     builder.add(types.InlineKeyboardButton(
@@ -66,8 +141,7 @@ async def cmd_start(message: types.Message):
     await message.answer("BS21-SD-01 Schedule:", reply_markup=builder.as_markup())
 
 
-@dp.callback_query(text="next_value")
-async def send_next_value(callback: types.CallbackQuery):
+def get_next():
     newtime = datetime.now() + timedelta(hours=3)
     next = False
     ongoing = False
@@ -100,56 +174,29 @@ async def send_next_value(callback: types.CallbackQuery):
                 mindiff = (diff % 3600)//60
                 msg += "Time until: "+str(hourdiff)+":"+str(mindiff)+"\n\n"
     if next == False and ongoing == False:
-        await callback.message.answer("No classes left 🎉")
-    else:
-        msg += "/start"
-        await callback.message.answer(msg)
-    # print(callback.message.message_id)
-    # # counter += 1
-    # global prev_message_id
-    # if prev_message_id != 0:
-    #     await bot.delete_message(callback.message.chat.id, prev_message_id)
-    # #     # counter = 0
-    # prev_message_id = int(callback.message.message_id)
-    await callback.answer()
+        msg = "No classes left 🎉"
+    return (msg)
 
 
-# @dp.callback_query(text="test")
-# async def test_call(callback: types.CallbackQuery):
-#     await callback.message.delete()
-
-
-@dp.callback_query(text="today_value")
-async def send_today_value(callback: types.CallbackQuery):
-    today_string = ""
+def get_today():
+    msg = ""
     weekday = False
     newdate = datetime.now()+timedelta(hours=3)
     for i in range(len(table)):
         if newdate.strftime("%A") == table[i][0]:
             if weekday == False:
-                today_string += table[i][0]+":\n"
+                msg += table[i][0]+":\n"
                 weekday = True
-            today_string += table[i][5]+"\n" + \
+            msg += table[i][5]+"\n" + \
                 table[i][4]+"\n"+table[i][3]+"\n" + \
                 table[i][1]+" - "+table[i][2]+"\n\n"
-    today_string += "/start"
-    if today_string == "/start":
-        await callback.message.answer("No classes today 🎉")
-    else:
-        await callback.message.answer(today_string)
-    print('\n', callback.message.message_id, callback.message.chat.id, '\n')
-    # counter += 1
-    # global prev_message_id
-    # if prev_message_id != 0:
-    #     await bot.delete_message(callback.message.chat.id, prev_message_id)
-    #     # counter = 0
-    # prev_message_id = callback.message.message_id
-    await callback.answer()
+    if msg == '':
+        msg = "No classes today 🎉"
+    return (msg)
 
 
-@dp.callback_query(text="tomorrow_value")
-async def send_tmrw_value(callback: types.CallbackQuery):
-    tomorrow_string = ""
+def get_tomorrow():
+    msg = ""
     newdate = datetime.now()+timedelta(hours=3)
     tmrw = ""
     weekday = False
@@ -161,24 +208,14 @@ async def send_tmrw_value(callback: types.CallbackQuery):
     for i in range(len(table)):
         if tmrw == table[i][0]:
             if weekday == False:
-                tomorrow_string += table[i][0]+":\n"
+                msg += table[i][0]+":\n"
                 weekday = True
-            tomorrow_string += table[i][5]+"\n" + \
+            msg += table[i][5]+"\n" + \
                 table[i][4]+"\n"+table[i][3]+"\n" + \
                 table[i][1]+" - "+table[i][2]+"\n\n"
-    tomorrow_string += "/start"
-    if tomorrow_string == "/start":
-        await callback.message.answer("No classes tomorrow 🎉")
-    else:
-        await callback.message.answer(tomorrow_string)
-    print('\n', callback.message.message_id, callback.message.chat.id, '\n')
-    # counter += 1
-    # global prev_message_id
-    # if prev_message_id != 0:
-    #     await bot.delete_message(callback.message.chat.id, prev_message_id)
-    #     # counter = 0
-    # prev_message_id = callback.message.message_id
-    await callback.answer()
+    if msg == '':
+        msg = "No classes tomorrow 🎉"
+    return msg
 
 
 @dp.callback_query(text="choose_value")
