@@ -19,12 +19,12 @@ BOT_TOKEN = str(array[3].rstrip())
 API_KEY = str(array[4].rstrip())
 f.close()
 
-logging.basicConfig(level=logging.INFO)
-auth = BasicAuth(LOGIN, PASSWORD)
-session = AiohttpSession(proxy=(PROXY_URL, auth))
-bot = Bot(token=BOT_TOKEN, session=session)
+# logging.basicConfig(level=logging.INFO)
+# auth = BasicAuth(LOGIN, PASSWORD)
+# session = AiohttpSession(proxy=(PROXY_URL, auth))
+# bot = Bot(token=BOT_TOKEN, session=session)
 
-# bot = Bot(token=BOT_TOKEN)
+bot = Bot(token=BOT_TOKEN)
 
 dp = Dispatcher()
 day_data = {}
@@ -49,7 +49,7 @@ table = [["Monday", "9:20", "10:50", "ONLINE", "Adil Khan",
          ["Friday", "9:20", "10:50", "ONLINE", "Kirill Saltanov",
              "System and Network Administration (lec)"],
          ["Friday", "13:00", "14:30", "101", "Awwal Ishiaku",
-         "System and Network Administration (lab)"],]
+         "System and Network Administration (lab)"]]
 
 weekdays = ["Monday", "Tuesday", "Wednesday",
             "Thursday", "Friday", "Saturday", "Sunday"]
@@ -100,29 +100,45 @@ def get_next():
     msg = ''
     for i in range(len(table)):
         if newtime.strftime("%A") == table[i][0]:
-            if weekday == False:
-                msg += "--- "+str(table[i][0]).upper()+" ---\n"
-                weekday = True
-            msg += "📚" + table[i][5]+"\n🤓"+table[i][4] + \
-                "\n🏠"+table[i][3]+"\n⏰"+table[i][1] + \
-                " - "+table[i][2]+"\n"
-            tmptime = newtime.strftime("%H:%M").split(":")
-            tmptime = int(tmptime[0])*3600+int(tmptime[1])*60
-            if table[i][1] < newtime.strftime("%H:%M") < table[i][2] and ongoing == False:
+            if table[i][1] < newtime.strftime("%H:%M") < table[i][2]:
+                if weekday == False:
+                    msg += "--- "+str(table[i][0]).upper()+" ---\n"
+                    weekday = True
+                msg += "📚" + table[i][5]+"\n🤓"+table[i][4] + \
+                    "\n🏠"+table[i][3]+"\n⏰"+table[i][1] + \
+                    " - "+table[i][2]+"\n"
+                tmptime = newtime.strftime("%H:%M").split(":")
+                tmptime = int(tmptime[0])*3600+int(tmptime[1])*60
                 ongoing = True
                 ttime = table[i][2].split(":")
                 ttime = int(ttime[0])*3600+int(ttime[1])*60
                 diff = (ttime-tmptime)
                 hourdiff = diff//3600
                 mindiff = (diff % 3600)//60
+                if hourdiff < 10:
+                    hourdiff = "0"+str(hourdiff)
+                if mindiff < 10:
+                    mindiff = "0"+str(mindiff)
                 msg += "Time left: "+str(hourdiff)+":"+str(mindiff)+"\n\n"
-            elif table[i][1] > newtime.strftime("%H:%M") and next == False:
+            elif table[i][1] > newtime.strftime("%H:%M") and next == False and table[i][2] > newtime.strftime("%H:%M"):
+                if weekday == False:
+                    msg += "--- "+str(table[i][0]).upper()+" ---\n"
+                    weekday = True
+                msg += "📚" + table[i][5]+"\n🤓"+table[i][4] + \
+                    "\n🏠"+table[i][3]+"\n⏰"+table[i][1] + \
+                    " - "+table[i][2]+"\n"
+                tmptime = newtime.strftime("%H:%M").split(":")
+                tmptime = int(tmptime[0])*3600+int(tmptime[1])*60
                 next = True
                 ttime = table[i][1].split(":")
                 ttime = int(ttime[0])*3600+int(ttime[1])*60
-                diff = (ttime-tmptime)
+                diff = ttime-tmptime
                 hourdiff = diff//3600
                 mindiff = (diff % 3600)//60
+                if hourdiff < 10:
+                    hourdiff = "0"+str(hourdiff)
+                if mindiff < 10:
+                    mindiff = "0"+str(mindiff)
                 msg += "Time until: "+str(hourdiff)+":"+str(mindiff)+"\n\n"
     if next == False and ongoing == False:
         msg = "No classes left 🎉"
