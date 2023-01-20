@@ -27,7 +27,8 @@ bot = Bot(token=BOT_TOKEN, session=session)
 # bot = Bot(token=BOT_TOKEN)
 
 dp = Dispatcher()
-user_data = {}
+day_data = {}
+week_data = {}
 users = []
 table = [["Monday", "9:20", "10:50", "ONLINE", "Adil Khan",
           "Introduction to Machine Learning (lec)"],
@@ -56,97 +57,39 @@ weekdays = ["Monday", "Tuesday", "Wednesday",
 
 def get_keyboard():
     buttons = [[
-        types.InlineKeyboardButton(text="NEXT", callback_data="num_next"),
+        types.InlineKeyboardButton(text="NEXT", callback_data="day_next"),
         types.InlineKeyboardButton(
-            text="TODAY", callback_data="num_today"),
+            text="TODAY", callback_data="day_today"),
         types.InlineKeyboardButton(
-            text="TOMORROW", callback_data="num_tomorrow"),]]
+            text="TOMORROW", callback_data="day_tomorrow"),]]
     keyboard = types.InlineKeyboardMarkup(inline_keyboard=buttons)
     return keyboard
 
 
-def get_keyboard2():
-    buttons = [[types.InlineKeyboardButton(text="MONDAY", callback_data="monday_value"),
-                types.InlineKeyboardButton(
-                    text="TUESDAY", callback_data="tuesday_value"),
-                types.InlineKeyboardButton(text="WEDNESDAY", callback_data="wednesday_value")],
-               [types.InlineKeyboardButton(text="THURSDAY", callback_data="thursday_value"),
-                types.InlineKeyboardButton(
-                    text="FRIDAY", callback_data="friday_value"),
-                types.InlineKeyboardButton(text="SATURDAY", callback_data="saturday_value")]]
-    keyboard = types.InlineKeyboardMarkup(inline_keyboard=buttons)
-    return keyboard
-
-
-async def update_num_text(message: types.Message, new_value: int):
+async def update_day_text(message: types.Message, new_value: int):
     with suppress(TelegramBadRequest):
         await message.edit_text(new_value, reply_markup=get_keyboard())
 
 
 @dp.message(commands=["start"])
-async def cmd_numbers(message: types.Message):
+async def cmd_days(message: types.Message):
     if message.from_user.id not in users:
         users.append(message.from_user.id)
-    user_data[message.from_user.id] = 0
+    day_data[message.from_user.id] = 0
     await message.answer("BS21-SD-01 Schedule:", reply_markup=get_keyboard())
 
 
-@dp.message(commands=["show"])
-async def cmd_show(message: types.Message):
-    if message.from_user.id == 1847234646:
-        msg = ''
-        if len(users) == 0:
-            msg = "No users"
-        else:
-            for i in range(len(users)):
-                msg += str(users[i])+'\n'
-        await message.answer(msg)
-    else:
-        await message.answer("You are not authorized to use this command.")
-
-
-@dp.callback_query(Text(text_startswith="num_"))
-async def callbacks_num(callback: types.CallbackQuery):
+@dp.callback_query(Text(text_startswith="day_"))
+async def callbacks_day(callback: types.CallbackQuery):
     action = callback.data.split("_")[1]
     if action == "next":
-        user_data[callback.from_user.id] = get_next()
+        day_data[callback.from_user.id] = get_next()
     elif action == "today":
-        user_data[callback.from_user.id] = get_today()
+        day_data[callback.from_user.id] = get_today()
     elif action == "tomorrow":
-        user_data[callback.from_user.id] = get_tomorrow()
-    await update_num_text(callback.message, user_data[callback.from_user.id])
+        day_data[callback.from_user.id] = get_tomorrow()
+    await update_day_text(callback.message, day_data[callback.from_user.id])
     await callback.answer()
-
-
-@dp.message(commands=["cleanup"])
-async def cmd_cleanup(message: types.Message):
-    if message.from_user.id == 1847234646:
-        msg = ''
-        for i in user_data:
-            msg += str(i)+': '+str(user_data[i])+'\n'
-        await message.answer(msg)
-        user_data.clear()
-        msg = ''
-        for i in user_data:
-            msg += str(i)+': '+str(user_data[i])+'\n'
-        await message.answer(msg)
-    else:
-        await message.answer("You are not authorized to use this command.")
-
-
-@dp.message(commands=["obsolete"])
-async def cmd_start(message: types.Message):
-    builder = InlineKeyboardBuilder()
-    builder.add(types.InlineKeyboardButton(
-        text="NEXT", callback_data="next_value"),
-        types.InlineKeyboardButton(
-        text="TODAY", callback_data="today_value"),
-        types.InlineKeyboardButton(
-        text="TOMORROW", callback_data="tomorrow_value"),
-        types.InlineKeyboardButton(
-        text="WEEK", callback_data="choose_value"),
-    )
-    await message.answer("BS21-SD-01 Schedule:", reply_markup=builder.as_markup())
 
 
 def get_next():
@@ -226,17 +169,40 @@ def get_tomorrow():
     return msg
 
 
+def get_keyboard2():
+    buttons = [[types.InlineKeyboardButton(text="MONDAY", callback_data="week_monday"),
+                types.InlineKeyboardButton(
+                    text="TUESDAY", callback_data="week_tuesday"),
+                types.InlineKeyboardButton(text="WEDNESDAY", callback_data="week_wednesday")],
+               [types.InlineKeyboardButton(text="THURSDAY", callback_data="week_thursday"),
+                types.InlineKeyboardButton(
+                    text="FRIDAY", callback_data="week_friday"),
+                types.InlineKeyboardButton(text="SATURDAY", callback_data="week_saturday")]]
+    keyboard = types.InlineKeyboardMarkup(inline_keyboard=buttons)
+    return keyboard
+
+
 @dp.message(commands=["week"])
 async def cmd_week(message: types.Message):
-    await message.answer("Choose a weekday:", reply_markup=get_keyboard2())
+    if message.from_user.id not in users:
+        users.append(message.from_user.id)
+    week_data[message.from_user.id] = 0
+    await message.answer("BS21-SD-01 Schedule for a week:", reply_markup=get_keyboard2())
 
 
-@ dp.callback_query(text="monday_value")
-async def send_monday_value(callback: types.CallbackQuery):
+@dp.callback_query(Text(text_startswith="week_"))
+async def callbacks_week(callback: types.CallbackQuery):
+    action = callback.data.split("_")[1]
+    week_data[callback.from_user.id] = get_day(action.capitalize())
+    await update_week_text(callback.message, week_data[callback.from_user.id])
+    await callback.answer()
+
+
+def get_day(day):
     msg = ""
     weekday = False
     for i in range(len(table)):
-        if "Monday" == table[i][0]:
+        if day == table[i][0]:
             if weekday == False:
                 msg += "--- "+str(table[i][0]).upper()+" ---\n"
                 weekday = True
@@ -244,105 +210,44 @@ async def send_monday_value(callback: types.CallbackQuery):
                 "\n🏠"+table[i][3]+"\n⏰"+table[i][1] + \
                 " - "+table[i][2]+"\n\n"
     if msg == "":
-        await callback.message.answer("No classes on Monday 🎉")
+        msg = "No classes on "+str(day)+"🎉"
+    return msg
+
+
+async def update_week_text(message: types.Message, new_value: int):
+    with suppress(TelegramBadRequest):
+        await message.edit_text(new_value, reply_markup=get_keyboard2())
+
+
+@dp.message(commands=["show"])
+async def cmd_show(message: types.Message):
+    if message.from_user.id == 1847234646:
+        msg = ''
+        if len(users) == 0:
+            msg = "No users"
+        else:
+            for i in range(len(users)):
+                msg += str(users[i])+'\n'
+        await message.answer(msg)
     else:
-        await callback.message.answer(msg)
-    await callback.answer()
+        await message.answer("You are not authorized to use this command.")
 
 
-@ dp.callback_query(text="tuesday_value")
-async def send_tuesday_value(callback: types.CallbackQuery):
-    msg = ""
-    weekday = False
-    for i in range(len(table)):
-        if "Tuesday" == table[i][0]:
-            if weekday == False:
-                msg += "--- "+str(table[i][0]).upper()+" ---\n"
-                weekday = True
-            msg += "📚" + table[i][5]+"\n🤓"+table[i][4] + \
-                "\n🏠"+table[i][3]+"\n⏰"+table[i][1] + \
-                " - "+table[i][2]+"\n\n"
-    if msg == "":
-        await callback.message.answer("No classes on Tuesday 🎉")
+@dp.message(commands=["cleanup"])
+async def cmd_cleanup(message: types.Message):
+    if message.from_user.id == 1847234646:
+        msg = ''
+        for i in day_data:
+            msg += str(i)+': '+str(day_data[i])+'\n'
+        await message.answer(msg)
+        day_data.clear()
+        msg = ''
+        for i in week_data:
+            msg += str(i)+': '+str(week_data[i])+'\n'
+        await message.answer(msg)
+        week_data.clear()
     else:
-        await callback.message.answer(msg)
-    await callback.answer()
-
-
-@ dp.callback_query(text="wednesday_value")
-async def send_wednesday_value(callback: types.CallbackQuery):
-    msg = ""
-    weekday = False
-    for i in range(len(table)):
-        if "Wednesday" == table[i][0]:
-            if weekday == False:
-                msg += "--- "+str(table[i][0]).upper()+" ---\n"
-                weekday = True
-            msg += "📚" + table[i][5]+"\n🤓"+table[i][4] + \
-                "\n🏠"+table[i][3]+"\n⏰"+table[i][1] + \
-                " - "+table[i][2]+"\n\n"
-    if msg == "":
-        await callback.message.answer("No classes on Wednesday 🎉")
-    else:
-        await callback.message.answer(msg)
-    await callback.answer()
-
-
-@ dp.callback_query(text="thursday_value")
-async def send_thursday_value(callback: types.CallbackQuery):
-    msg = ""
-    weekday = False
-    for i in range(len(table)):
-        if "Thursday" == table[i][0]:
-            if weekday == False:
-                msg += "--- "+str(table[i][0]).upper()+" ---\n"
-                weekday = True
-            msg += "📚" + table[i][5]+"\n🤓"+table[i][4] + \
-                "\n🏠"+table[i][3]+"\n⏰"+table[i][1] + \
-                " - "+table[i][2]+"\n\n"
-    if msg == "":
-        await callback.message.answer("No classes on Thursday 🎉")
-    else:
-        await callback.message.answer(msg)
-    await callback.answer()
-
-
-@ dp.callback_query(text="friday_value")
-async def send_friday_value(callback: types.CallbackQuery):
-    msg = ""
-    weekday = False
-    for i in range(len(table)):
-        if "Friday" == table[i][0]:
-            if weekday == False:
-                msg += "--- "+str(table[i][0]).upper()+" ---\n"
-                weekday = True
-            msg += "📚" + table[i][5]+"\n🤓"+table[i][4] + \
-                "\n🏠"+table[i][3]+"\n⏰"+table[i][1] + \
-                " - "+table[i][2]+"\n\n"
-    if msg == "":
-        await callback.message.answer("No classes on Friday 🎉")
-    else:
-        await callback.message.answer(msg)
-    await callback.answer()
-
-
-@ dp.callback_query(text="saturday_value")
-async def send_saturday_value(callback: types.CallbackQuery):
-    msg = ""
-    weekday = False
-    for i in range(len(table)):
-        if "Saturday" == table[i][0]:
-            if weekday == False:
-                msg += "--- "+str(table[i][0]).upper()+" ---\n"
-                weekday = True
-            msg += "📚" + table[i][5]+"\n🤓"+table[i][4] + \
-                "\n🏠"+table[i][3]+"\n⏰"+table[i][1] + \
-                " - "+table[i][2]+"\n\n"
-    if msg == "":
-        await callback.message.answer("No classes on Saturday 🎉")
-    else:
-        await callback.message.answer(msg)
-    await callback.answer()
+        await message.answer("You are not authorized to use this command.")
 
 
 @ dp.message(commands=["delete"])
@@ -405,13 +310,13 @@ async def handle_location(message: types.Message):
     observation = mgr.weather_at_coords(lat, lon)
     w = observation.weather
     temp = w.temperature('celsius')["temp"]
-    await message.answer(f"Air temperature at latitude {lat},longitude {lon}, is {temp}°C")
+    await message.answer(f"Air temperature at latitude {lat}, longitude {lon}, is {temp}°C.")
 
 
 @dp.message(content_types="text")
 async def echo(message: types.Message):
     print("\n", message.text, "\n")
-    await message.answer("I don't understand you")
+    await message.answer("I don't understand you, human.")
 
 
 @ dp.message(content_types=[types.ContentType.ANIMATION])
