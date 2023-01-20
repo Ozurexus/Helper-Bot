@@ -46,7 +46,7 @@ table = [["Monday", "9:20", "10:50", "ONLINE", "Adil Khan",
          ["Wednesday", "14:40", "16:10", "314",
              "Gerald B. Imbugwa", "Networks (lab)"],
          ["Friday", "9:20", "10:50", "ONLINE", "Kirill Saltanov",
-             "System and Network Administration (lec))"],
+             "System and Network Administration (lec)"],
          ["Friday", "13:00", "14:30", "101", "Awwal Ishiaku",
          "System and Network Administration (lab)"],]
 
@@ -158,10 +158,10 @@ def get_next():
     for i in range(len(table)):
         if newtime.strftime("%A") == table[i][0]:
             if weekday == False:
-                msg += table[i][0]+":\n"
+                msg += "--- "+str(table[i][0]).upper()+" ---\n"
                 weekday = True
-            msg += table[i][5]+"\n"+table[i][4] + \
-                "\n"+table[i][3]+"\n"+table[i][1] + \
+            msg += "📚" + table[i][5]+"\n🤓"+table[i][4] + \
+                "\n🏠"+table[i][3]+"\n⏰"+table[i][1] + \
                 " - "+table[i][2]+"\n"
             tmptime = newtime.strftime("%H:%M").split(":")
             tmptime = int(tmptime[0])*3600+int(tmptime[1])*60
@@ -193,11 +193,11 @@ def get_today():
     for i in range(len(table)):
         if newdate.strftime("%A") == table[i][0]:
             if weekday == False:
-                msg += table[i][0]+":\n"
+                msg += "--- "+str(table[i][0]).upper()+" ---\n"
                 weekday = True
-            msg += table[i][5]+"\n" + \
-                table[i][4]+"\n"+table[i][3]+"\n" + \
-                table[i][1]+" - "+table[i][2]+"\n\n"
+            msg += "📚" + table[i][5]+"\n🤓"+table[i][4] + \
+                "\n🏠"+table[i][3]+"\n⏰"+table[i][1] + \
+                " - "+table[i][2]+"\n\n"
     if msg == '':
         msg = "No classes today 🎉"
     return (msg)
@@ -216,11 +216,11 @@ def get_tomorrow():
     for i in range(len(table)):
         if tmrw == table[i][0]:
             if weekday == False:
-                msg += table[i][0]+":\n"
+                msg += "--- "+str(table[i][0]).upper()+" ---\n"
                 weekday = True
-            msg += table[i][5]+"\n" + \
-                table[i][4]+"\n"+table[i][3]+"\n" + \
-                table[i][1]+" - "+table[i][2]+"\n\n"
+            msg += "📚" + table[i][5]+"\n🤓"+table[i][4] + \
+                "\n🏠"+table[i][3]+"\n⏰"+table[i][1] + \
+                " - "+table[i][2]+"\n\n"
     if msg == '':
         msg = "No classes tomorrow 🎉"
     return msg
@@ -238,10 +238,11 @@ async def send_monday_value(callback: types.CallbackQuery):
     for i in range(len(table)):
         if "Monday" == table[i][0]:
             if weekday == False:
-                msg += table[i][0]+":\n"
+                msg += "--- "+str(table[i][0]).upper()+" ---\n"
                 weekday = True
-            msg += table[i][5]+"\n" + table[i][4]+"\n" + \
-                table[i][3]+"\n" + table[i][1]+" - "+table[i][2]+"\n\n"
+            msg += "📚" + table[i][5]+"\n🤓"+table[i][4] + \
+                "\n🏠"+table[i][3]+"\n⏰"+table[i][1] + \
+                " - "+table[i][2]+"\n\n"
     if msg == "":
         await callback.message.answer("No classes on Monday 🎉")
     else:
@@ -256,10 +257,11 @@ async def send_tuesday_value(callback: types.CallbackQuery):
     for i in range(len(table)):
         if "Tuesday" == table[i][0]:
             if weekday == False:
-                msg += table[i][0]+":\n"
+                msg += "--- "+str(table[i][0]).upper()+" ---\n"
                 weekday = True
-            msg += table[i][5]+"\n" + table[i][4]+"\n" + \
-                table[i][3]+"\n" + table[i][1]+" - "+table[i][2]+"\n\n"
+            msg += "📚" + table[i][5]+"\n🤓"+table[i][4] + \
+                "\n🏠"+table[i][3]+"\n⏰"+table[i][1] + \
+                " - "+table[i][2]+"\n\n"
     if msg == "":
         await callback.message.answer("No classes on Tuesday 🎉")
     else:
@@ -274,10 +276,11 @@ async def send_wednesday_value(callback: types.CallbackQuery):
     for i in range(len(table)):
         if "Wednesday" == table[i][0]:
             if weekday == False:
-                msg += table[i][0]+":\n"
+                msg += "--- "+str(table[i][0]).upper()+" ---\n"
                 weekday = True
-            msg += table[i][5]+"\n" + table[i][4]+"\n" + \
-                table[i][3]+"\n" + table[i][1]+" - "+table[i][2]+"\n\n"
+            msg += "📚" + table[i][5]+"\n🤓"+table[i][4] + \
+                "\n🏠"+table[i][3]+"\n⏰"+table[i][1] + \
+                " - "+table[i][2]+"\n\n"
     if msg == "":
         await callback.message.answer("No classes on Wednesday 🎉")
     else:
@@ -292,10 +295,11 @@ async def send_thursday_value(callback: types.CallbackQuery):
     for i in range(len(table)):
         if "Thursday" == table[i][0]:
             if weekday == False:
-                msg += table[i][0]+":\n"
+                msg += "--- "+str(table[i][0]).upper()+" ---\n"
                 weekday = True
-            msg += table[i][5]+"\n" + table[i][4]+"\n" + \
-                table[i][3]+"\n" + table[i][1]+" - "+table[i][2]+"\n\n"
+            msg += "📚" + table[i][5]+"\n🤓"+table[i][4] + \
+                "\n🏠"+table[i][3]+"\n⏰"+table[i][1] + \
+                " - "+table[i][2]+"\n\n"
     if msg == "":
         await callback.message.answer("No classes on Thursday 🎉")
     else:
@@ -310,10 +314,11 @@ async def send_friday_value(callback: types.CallbackQuery):
     for i in range(len(table)):
         if "Friday" == table[i][0]:
             if weekday == False:
-                msg += table[i][0]+":\n"
+                msg += "--- "+str(table[i][0]).upper()+" ---\n"
                 weekday = True
-            msg += table[i][5]+"\n" + table[i][4]+"\n" + \
-                table[i][3]+"\n" + table[i][1]+" - "+table[i][2]+"\n\n"
+            msg += "📚" + table[i][5]+"\n🤓"+table[i][4] + \
+                "\n🏠"+table[i][3]+"\n⏰"+table[i][1] + \
+                " - "+table[i][2]+"\n\n"
     if msg == "":
         await callback.message.answer("No classes on Friday 🎉")
     else:
@@ -328,10 +333,11 @@ async def send_saturday_value(callback: types.CallbackQuery):
     for i in range(len(table)):
         if "Saturday" == table[i][0]:
             if weekday == False:
-                msg += table[i][0]+":\n"
+                msg += "--- "+str(table[i][0]).upper()+" ---\n"
                 weekday = True
-            msg += table[i][5]+"\n" + table[i][4]+"\n" + \
-                table[i][3]+"\n" + table[i][1]+" - "+table[i][2]+"\n\n"
+            msg += "📚" + table[i][5]+"\n🤓"+table[i][4] + \
+                "\n🏠"+table[i][3]+"\n⏰"+table[i][1] + \
+                " - "+table[i][2]+"\n\n"
     if msg == "":
         await callback.message.answer("No classes on Saturday 🎉")
     else:
@@ -390,19 +396,19 @@ async def cmd_weather(message: types.Message, command: CommandObject):
         await message.answer("Please write your city after /weather")
 
 
-@ dp.message(content_types=['location'])
+@dp.message(content_types=['location'])
 async def handle_location(message: types.Message):
-    lat = message.location.latitude
-    lon = message.location.longitude
+    lat = round(message.location.latitude, 3)
+    lon = round(message.location.longitude, 3)
     owm = OWM(API_KEY)
     mgr = owm.weather_manager()
     observation = mgr.weather_at_coords(lat, lon)
     w = observation.weather
     temp = w.temperature('celsius')["temp"]
-    await message.answer(f"Air temperature at latitude: {lat},longitude: {lon}: \n{temp}°C")
+    await message.answer(f"Air temperature at latitude {lat},longitude {lon}, is {temp}°C")
 
 
-@ dp.message(content_types="text")
+@dp.message(content_types="text")
 async def echo(message: types.Message):
     print("\n", message.text, "\n")
     await message.answer("I don't understand you")
