@@ -33,21 +33,21 @@ users = []
 table = [["Monday", "9:20", "10:50", "ONLINE", "Adil Khan",
           "Introduction to Machine Learning (lec)"],
          ["Monday", "13:00", "14:30", "317", "Roman Garaev",
-             "Introduction to Machine Learning (lab)"],
+          "Introduction to Machine Learning (lab)"],
          ["Tuesday", "11:00", "12:30", "ONLINE",
-             "Darko Bozhinoski", "Databases (lec)"],
+          "Darko Bozhinoski", "Databases (lec)"],
          ["Tuesday", "13:00", "14:30", "106",
-             "Hamza Salem", "Databases (tut)"],
+          "Hamza Salem", "Databases (tut)"],
          ["Tuesday", "14:40", "16:10", "312",
-             "Munir Makhmutov", "Databases (lab)"],
+          "Munir Makhmutov", "Databases (lab)"],
          ["Wednesday", "11:00", "12:30", "ONLINE",
-             "Paolo Ciancarini", "Networks (lec)"],
+          "Paolo Ciancarini", "Networks (lec)"],
          ["Wednesday", "13:00", "14:30", "105",
-             "Artem Burmyakov", "Networks (tut)"],
+          "Artem Burmyakov", "Networks (tut)"],
          ["Wednesday", "14:40", "16:10", "314",
-             "Gerald B. Imbugwa", "Networks (lab)"],
+          "Gerald B. Imbugwa", "Networks (lab)"],
          ["Friday", "9:20", "10:50", "ONLINE", "Kirill Saltanov",
-             "System and Network Administration (lec)"],
+          "System and Network Administration (lec)"],
          ["Friday", "13:00", "14:30", "101", "Awwal Ishiaku",
          "System and Network Administration (lab)"]]
 
@@ -92,6 +92,20 @@ async def callbacks_day(callback: types.CallbackQuery):
     await callback.answer()
 
 
+def cmpr(time1, time2):
+    time1 = time1.split(":")
+    time2 = time2.split(":")
+    if int(time1[0]) > int(time2[0]):
+        return True
+    elif int(time1[0]) == int(time2[0]):
+        if int(time1[1]) > int(time2[1]):
+            return True
+        else:
+            return False
+    else:
+        return False
+
+
 def get_next():
     newtime = datetime.now() + timedelta(hours=3)
     next = False
@@ -100,7 +114,7 @@ def get_next():
     msg = ''
     for i in range(len(table)):
         if newtime.strftime("%A") == table[i][0]:
-            if table[i][1] < newtime.strftime("%H:%M") < table[i][2]:
+            if not cmpr(table[i][1], newtime.strftime("%H:%M")) and not cmpr(newtime.strftime("%H:%M"), table[i][2]) and ongoing == False:
                 if weekday == False:
                     msg += "--- "+str(table[i][0]).upper()+" ---\n"
                     weekday = True
@@ -120,7 +134,7 @@ def get_next():
                 if mindiff < 10:
                     mindiff = "0"+str(mindiff)
                 msg += "Time left: "+str(hourdiff)+":"+str(mindiff)+"\n\n"
-            elif table[i][1] > newtime.strftime("%H:%M") and next == False and table[i][2] > newtime.strftime("%H:%M"):
+            elif cmpr(table[i][1], newtime.strftime("%H:%M")) and next == False:
                 if weekday == False:
                     msg += "--- "+str(table[i][0]).upper()+" ---\n"
                     weekday = True
@@ -320,7 +334,6 @@ async def cmd_weather(message: types.Message, command: CommandObject):
 @dp.message(commands=["stipa"])
 async def cmd_stipa(message: types.Message, command: CommandObject):
     if command.args:
-        print(command.args)
         msg = command.args.split()
         msg = list(msg[0])
         GPA = 0
@@ -338,7 +351,6 @@ async def cmd_stipa(message: types.Message, command: CommandObject):
                 await message.answer("Please write your grades after /stipa")
                 return
             GPA += int(msg[i])
-        print(msg)
         GPA /= len(msg)
         Bmin = 3000
         Bmax = 20000
@@ -361,11 +373,6 @@ async def handle_location(message: types.Message):
     w = observation.weather
     temp = w.temperature('celsius')["temp"]
     await message.answer(f"Air temperature at latitude {lat}, longitude {lon}, is {temp}°C.")
-
-
-@dp.message(content_types=['photo'])
-async def handle_photo(message: types.Message):
-    await message.reply(message.photo[-1].file_id)
 
 
 @dp.message(content_types="text")
