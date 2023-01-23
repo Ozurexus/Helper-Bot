@@ -19,6 +19,11 @@ BOT_TOKEN = str(array[3].rstrip())
 API_KEY = str(array[4].rstrip())
 f.close()
 
+f = open("extra.txt", "r+")
+users = []
+for line in f:
+    users.append(line.strip())
+f.close()
 logging.basicConfig(level=logging.INFO)
 auth = BasicAuth(LOGIN, PASSWORD)
 session = AiohttpSession(proxy=(PROXY_URL, auth))
@@ -29,7 +34,6 @@ bot = Bot(token=BOT_TOKEN, session=session)
 dp = Dispatcher()
 day_data = {}
 week_data = {}
-users = []
 table = [["Monday", "9:20", "10:50", "ONLINE", "Adil Khan",
           "Introduction to Machine Learning (lec)"],
          ["Monday", "13:00", "14:30", "317", "Roman Garaev",
@@ -75,6 +79,9 @@ async def update_day_text(message: types.Message, new_value: int):
 async def cmd_days(message: types.Message):
     if message.from_user.id not in users:
         users.append(message.from_user.id)
+        f = open("extra.txt", "a")
+        f.write(str(message.from_user.id)+"\n")
+        f.close()
     day_data[message.from_user.id] = 0
     await message.answer("BS21-SD-01 Schedule:", reply_markup=get_keyboard())
 
@@ -216,6 +223,9 @@ def get_keyboard2():
 async def cmd_week(message: types.Message):
     if message.from_user.id not in users:
         users.append(message.from_user.id)
+        f = open("extra.txt", "a")
+        f.write(str(message.from_user.id)+"\n")
+        f.close()
     week_data[message.from_user.id] = 0
     await message.answer("BS21-SD-01 Schedule for a week:", reply_markup=get_keyboard2())
 
@@ -285,18 +295,10 @@ async def cmd_delete(message: types.Message):
     await bot.delete_message(message.chat.id, message.message_id)
 
 
-@ dp.message(commands=["date"])
-async def cmd_date(message: types.Message):
-    newdate = datetime.now()+timedelta(hours=3)
-    newdate = newdate.strftime("%d.%m.%Y")
-    await message.answer("Today is " + newdate)
-
-
 @ dp.message(commands=["time"])
-async def cmd_time(message: types.Message):
-    newtime = datetime.now()+timedelta(hours=3)
-    newtime = newtime.strftime("%H:%M:%S")
-    await message.answer("Now is " + newtime)
+async def cmd_fullnow(message: types.Message):
+    now = datetime.now()+timedelta(hours=3)
+    print(now)
 
 
 @ dp.message(commands=["dice"])
