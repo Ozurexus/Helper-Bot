@@ -19,12 +19,12 @@ BOT_TOKEN = str(array[3].rstrip())
 API_KEY = str(array[4].rstrip())
 f.close()
 
-# logging.basicConfig(level=logging.INFO)
-# auth = BasicAuth(LOGIN, PASSWORD)
-# session = AiohttpSession(proxy=(PROXY_URL, auth))
-# bot = Bot(token=BOT_TOKEN, session=session)
+logging.basicConfig(level=logging.INFO)
+auth = BasicAuth(LOGIN, PASSWORD)
+session = AiohttpSession(proxy=(PROXY_URL, auth))
+bot = Bot(token=BOT_TOKEN, session=session)
 
-bot = Bot(token=BOT_TOKEN)
+# bot = Bot(token=BOT_TOKEN)
 
 dp = Dispatcher()
 day_data = {}
@@ -317,6 +317,40 @@ async def cmd_weather(message: types.Message, command: CommandObject):
         await message.answer("Please write your city after /weather")
 
 
+@dp.message(commands=["stipa"])
+async def cmd_stipa(message: types.Message, command: CommandObject):
+    if command.args:
+        print(command.args)
+        msg = command.args.split()
+        msg = list(msg[0])
+        GPA = 0
+        for i in range(len(msg)):
+            msg[i] = msg[i].upper()
+            if msg[i] == 'A' or msg[i] == 'P':
+                msg[i] = '5'
+            elif msg[i] == 'B':
+                msg[i] = '4'
+            elif msg[i] == 'C':
+                msg[i] = '3'
+            elif msg[i] == 'D' or msg[i] == 'F':
+                msg[i] = '2'
+            else:
+                await message.answer("Please write your grades after /stipa")
+                return
+            GPA += int(msg[i])
+        print(msg)
+        GPA /= len(msg)
+        Bmin = 3000
+        Bmax = 20000
+        Srac = 0
+        S = Bmin+(Bmax-Bmin)*((GPA-2)/(5-2))**2.5-Srac
+        S = round(S)
+        Expenses = 3000
+        await message.answer(f"Your GPA is {GPA}.\nYour stipend is {S} rubles.\nAfter expenses you will have {S-Expenses} rubles.")
+    else:
+        await message.answer("Please write your grades after /stipa")
+
+
 @dp.message(content_types=['location'])
 async def handle_location(message: types.Message):
     lat = round(message.location.latitude, 3)
@@ -327,6 +361,11 @@ async def handle_location(message: types.Message):
     w = observation.weather
     temp = w.temperature('celsius')["temp"]
     await message.answer(f"Air temperature at latitude {lat}, longitude {lon}, is {temp}°C.")
+
+
+@dp.message(content_types=['photo'])
+async def handle_photo(message: types.Message):
+    await message.reply(message.photo[-1].file_id)
 
 
 @dp.message(content_types="text")
