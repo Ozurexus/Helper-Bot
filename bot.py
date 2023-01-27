@@ -19,11 +19,14 @@ BOT_TOKEN = str(array[3].rstrip())
 API_KEY = str(array[4].rstrip())
 f.close()
 
-f = open("extra.txt", "r+")
+f = open("extra.txt", "r")
 users = []
 for line in f:
     users.append(line.strip())
 f.close()
+users = set(users)
+users = list(users)
+
 logging.basicConfig(level=logging.INFO)
 auth = BasicAuth(LOGIN, PASSWORD)
 session = AiohttpSession(proxy=(PROXY_URL, auth))
@@ -75,13 +78,28 @@ async def update_day_text(message: types.Message, new_value: int):
         await message.edit_text(new_value, reply_markup=get_keyboard())
 
 
+def file_mod(users):
+    f = open("extra.txt", "r")
+    array = f.readlines()
+    for i in range(len(array)):
+        array[i] = (array[i].rstrip('\n'))
+    array = set(array)
+    users = set(users)
+    array = users | array
+    array = list(array)
+    f.close()
+    f = open("extra.txt", "w")
+    for i in range(len(array)):
+        f.write(str(array[i])+'\n')
+    f.close()
+    return
+
+
 @dp.message(commands=["start"])
 async def cmd_days(message: types.Message):
     if message.from_user.id not in users:
         users.append(message.from_user.id)
-        f = open("extra.txt", "a")
-        f.write(str(message.from_user.id)+"\n")
-        f.close()
+        file_mod(users)
     day_data[message.from_user.id] = 0
     await message.answer("BS21-SD-01 Schedule:", reply_markup=get_keyboard())
 
@@ -223,9 +241,7 @@ def get_keyboard2():
 async def cmd_week(message: types.Message):
     if message.from_user.id not in users:
         users.append(message.from_user.id)
-        f = open("extra.txt", "a")
-        f.write(str(message.from_user.id)+"\n")
-        f.close()
+        file_mod(users)
     week_data[message.from_user.id] = 0
     await message.answer("BS21-SD-01 Schedule for a week:", reply_markup=get_keyboard2())
 
@@ -290,29 +306,29 @@ async def cmd_cleanup(message: types.Message):
         await message.answer("You are not authorized to use this command.")
 
 
-@ dp.message(commands=["delete"])
+@dp.message(commands=["delete"])
 async def cmd_delete(message: types.Message):
     await bot.delete_message(message.chat.id, message.message_id)
 
 
-@ dp.message(commands=["time"])
+@dp.message(commands=["time"])
 async def cmd_fullnow(message: types.Message):
     now = datetime.now()+timedelta(hours=3)
-    print(now)
+    await message.answer(now.strftime("%d/%m/%Y %H:%M:%S"))
 
 
-@ dp.message(commands=["dice"])
+@dp.message(commands=["dice"])
 async def cmd_dice(message: types.Message):
     await message.answer_dice(emoji="🎲")
 
 
-@ dp.message(commands=["id"])
+@dp.message(commands=["id"])
 async def cmd_id(message: types.Message):
     msg = "Your id is "+str(message.from_user.id)
     await message.answer(msg)
 
 
-@ dp.message(commands=["name"])
+@dp.message(commands=["name"])
 async def cmd_name(message: types.Message, command: CommandObject):
     if command.args:
         await message.answer("Hello, " + command.args+"!")
@@ -320,7 +336,7 @@ async def cmd_name(message: types.Message, command: CommandObject):
         await message.answer("Please write your name after /name")
 
 
-@ dp.message(commands=["weather"])
+@dp.message(commands=["weather"])
 async def cmd_weather(message: types.Message, command: CommandObject):
     if command.args:
         owm = OWM(API_KEY)
@@ -359,7 +375,7 @@ async def cmd_stipa(message: types.Message, command: CommandObject):
         Srac = 0
         S = Bmin+(Bmax-Bmin)*((GPA-2)/(5-2))**2.5-Srac
         S = round(S)
-        Expenses = 3000
+        Expenses = 3100
         await message.answer(f"Your GPA is {GPA}.\nYour stipend is {S} rubles.\nAfter expenses you will have {S-Expenses} rubles.")
     else:
         await message.answer("Please write your grades after /stipa")
@@ -383,12 +399,12 @@ async def echo(message: types.Message):
     await message.answer("I don't understand you, human.")
 
 
-@ dp.message(content_types=[types.ContentType.ANIMATION])
+@dp.message(content_types=[types.ContentType.ANIMATION])
 async def echo_gif(message: types.Message):
     await message.reply_animation(message.animation.file_id)
 
 
-@ dp.message(content_types=[types.ContentType.STICKER])
+@dp.message(content_types=[types.ContentType.STICKER])
 async def echo_sticker(message: types.Message):
     await message.reply_sticker(message.sticker.file_id)
 
