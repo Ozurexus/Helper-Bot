@@ -9,6 +9,9 @@ from aiogram.utils.keyboard import InlineKeyboardBuilder
 from aiogram.client.session.aiohttp import AiohttpSession
 from contextlib import suppress
 from aiogram.exceptions import TelegramBadRequest
+from aiogram.dispatcher.filters.command import Command
+from aiogram.dispatcher.fsm.context import FSMContext
+from aiogram.dispatcher.fsm.state import StatesGroup, State
 
 f = open("info.txt", "r")
 array = f.readlines()
@@ -55,7 +58,7 @@ table = [["Monday", "9:20", "10:50", "ONLINE", "Adil Khan",
           "Gerald B. Imbugwa", "Networks (lab)"],
          ["Friday", "9:20", "10:50", "ONLINE", "Kirill Saltanov",
           "System and Network Administration (lec)"],
-         ["Friday", "13:00", "14:30", "101", "Awwal Ishiaku",
+         ["Friday", "14:40", "16:10", "101", "Awwal Ishiaku",
          "System and Network Administration (lab)"]]
 
 weekdays = ["Monday", "Tuesday", "Wednesday",
@@ -328,57 +331,69 @@ async def cmd_id(message: types.Message):
     await message.answer(msg)
 
 
-@dp.message(commands=["name"])
-async def cmd_name(message: types.Message, command: CommandObject):
-    if command.args:
-        await message.answer("Hello, " + command.args+"!")
-    else:
-        await message.answer("Please write your name after /name")
+class WeatherStates(StatesGroup):
+    start = State()
+    finish = State()
 
 
 @dp.message(commands=["weather"])
-async def cmd_weather(message: types.Message, command: CommandObject):
-    if command.args:
-        owm = OWM(API_KEY)
-        mgr = owm.weather_manager()
-        observation = mgr.weather_at_place(command.args)
-        w = observation.weather
-        temp = w.temperature('celsius')["temp"]
-        await message.answer(f"In {command.args} is currently {w.detailed_status}.\nAir temperature: {temp}°C")
-    else:
-        await message.answer("Please write your city after /weather")
+async def cmd_weather(message: types.Message, state: FSMContext):
+    await message.answer("Please write your city")
+    await state.set_state(WeatherStates.start)
+
+
+@dp.message(state=WeatherStates.start)
+async def cmd_weather(message: types.Message, state: FSMContext):
+    owm = OWM(API_KEY)
+    mgr = owm.weather_manager()
+    observation = mgr.weather_at_place(message.text)
+    w = observation.weather
+    temp = w.temperature('celsius')["temp"]
+    await message.answer(f"In {message.text} is currently {w.detailed_status}.\nAir temperature: {temp}°C")
+    await state.set_state(WeatherStates.finish)
+
+
+class StipaStates(StatesGroup):
+    start = State()
+    finish = State()
 
 
 @dp.message(commands=["stipa"])
-async def cmd_stipa(message: types.Message, command: CommandObject):
-    if command.args:
-        msg = command.args.split()
-        msg = list(msg[0])
-        GPA = 0
-        for i in range(len(msg)):
-            msg[i] = msg[i].upper()
-            if msg[i] == 'A' or msg[i] == 'P':
+async def cmd_stipa(message: types.Message, state: FSMContext):
+    await message.answer("Please write your grades without spaces between them")
+    await state.set_state(StipaStates.start)
+
+
+@dp.message(state=StipaStates.start)
+async def cmd_stipa(message: types.Message, state: FSMContext):
+    msg = message.text.split()
+    msg = list(msg[0])
+    GPA = 0
+    for i in range(len(msg)):
+        match msg[i].upper():
+            case 'A' | 'P':
                 msg[i] = '5'
-            elif msg[i] == 'B':
+            case 'B':
                 msg[i] = '4'
-            elif msg[i] == 'C':
+            case 'C':
                 msg[i] = '3'
-            elif msg[i] == 'D' or msg[i] == 'F':
+            case 'D' | 'F':
                 msg[i] = '2'
-            else:
-                await message.answer("Please write your grades after /stipa")
-                return
-            GPA += int(msg[i])
-        GPA /= len(msg)
-        Bmin = 3000
-        Bmax = 20000
-        Srac = 0
-        S = Bmin+(Bmax-Bmin)*((GPA-2)/(5-2))**2.5-Srac
-        S = round(S)
-        Expenses = 3100
-        await message.answer(f"Your GPA is {GPA}.\nYour stipend is {S} rubles.\nAfter expenses you will have {S-Expenses} rubles.")
-    else:
-        await message.answer("Please write your grades after /stipa")
+        GPA += int(msg[i])
+    GPA /= len(msg)
+    Bmin = 3000
+    Bmax = 20000
+    Srac = 0
+    S = Bmin+(Bmax-Bmin)*((GPA-2)/(5-2))**2.5-Srac
+    S = (round(S)//100)*100
+    Expenses = 3100
+    await message.answer(f"Your GPA is {GPA}.\nYour stipend is {S} rubles.\nAfter expenses you will have {S-Expenses} rubles.")
+    await state.set_state(StipaStates.finish)
+
+
+@dp.callback_query(text="send_loco")
+async def callback_query(call: types.CallbackQuery):
+    await call.message.answer("Send location", reply_markup=types.ReplyKeyboardRemove())
 
 
 @dp.message(content_types=['location'])
