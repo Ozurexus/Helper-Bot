@@ -1,19 +1,18 @@
 import asyncio
 import logging
-from pyowm import OWM
+from contextlib import suppress
 from datetime import datetime, timedelta
+from pyowm import OWM
 from aiohttp import BasicAuth
 from aiogram import Bot, Dispatcher, types
-from aiogram.dispatcher.filters import CommandObject, Text
-from aiogram.utils.keyboard import InlineKeyboardBuilder
+from aiogram.dispatcher.filters import Text
+# from aiogram.utils.keyboard import InlineKeyboardBuilder
 from aiogram.client.session.aiohttp import AiohttpSession
-from contextlib import suppress
 from aiogram.exceptions import TelegramBadRequest
-from aiogram.dispatcher.filters.command import Command
 from aiogram.dispatcher.fsm.context import FSMContext
 from aiogram.dispatcher.fsm.state import StatesGroup, State
 
-f = open("info.txt", "r")
+f = open("info.txt", "r", encoding="utf-8")
 array = f.readlines()
 LOGIN = str(array[0].rstrip())
 PASSWORD = str(array[1].rstrip())
@@ -22,7 +21,7 @@ BOT_TOKEN = str(array[3].rstrip())
 API_KEY = str(array[4].rstrip())
 f.close()
 
-f = open("extra.txt", "r")
+f = open("extra.txt", "r", encoding="utf-8")
 users = []
 for line in f:
     users.append(line.strip())
@@ -81,20 +80,19 @@ async def update_day_text(message: types.Message, new_value: int):
         await message.edit_text(new_value, reply_markup=get_keyboard())
 
 
-def file_mod(users):
-    f = open("extra.txt", "r")
-    array = f.readlines()
-    for i in range(len(array)):
-        array[i] = (array[i].rstrip('\n'))
-    array = set(array)
-    users = set(users)
-    array = users | array
-    array = list(array)
-    f.close()
-    f = open("extra.txt", "w")
-    for i in range(len(array)):
-        f.write(str(array[i])+'\n')
-    f.close()
+def file_mod(userarray):
+    file = open("extra.txt", "r", encoding="utf-8")
+    arr = file.readlines()
+    for i in arr:
+        i = i.rstrip('\n')
+    arr = set(arr)
+    userarray = set(userarray)
+    arr = userarray | arr
+    arr = list(arr)
+    file.close()
+    file = open("extra.txt", "w", encoding="utf-8")
+    file.write('\n'.join(arr))
+    file.close()
     return
 
 
@@ -136,23 +134,22 @@ def cmpr(time1, time2):
 
 def get_next():
     newtime = datetime.now() + timedelta(hours=3)
-    next = False
+    nextclass = False
     ongoing = False
     weekday = False
     msg = ''
-    for i in range(len(table)):
-        if newtime.strftime("%A") == table[i][0]:
-            if not cmpr(table[i][1], newtime.strftime("%H:%M")) and not cmpr(newtime.strftime("%H:%M"), table[i][2]) and ongoing == False:
-                if weekday == False:
-                    msg += "--- "+str(table[i][0]).upper()+" ---\n"
+    for i in table:
+        if newtime.strftime("%A") == i[0]:
+            if not cmpr(i[1], newtime.strftime("%H:%M")) and not cmpr(newtime.strftime("%H:%M"), i[2]) and ongoing is False:
+                if weekday is False:
+                    msg += "--- "+str(i[0]).upper()+" ---\n"
                     weekday = True
-                msg += "📚" + table[i][5]+"\n🤓"+table[i][4] + \
-                    "\n🏠"+table[i][3]+"\n⏰"+table[i][1] + \
-                    " - "+table[i][2]+"\n"
+                msg += "📚" + i[5]+"\n🤓"+i[4] + "\n🏠" + \
+                    i[3]+"\n⏰"+i[1] + " - "+i[2]+"\n"
                 tmptime = newtime.strftime("%H:%M").split(":")
                 tmptime = int(tmptime[0])*3600+int(tmptime[1])*60
                 ongoing = True
-                ttime = table[i][2].split(":")
+                ttime = i[2].split(":")
                 ttime = int(ttime[0])*3600+int(ttime[1])*60
                 diff = (ttime-tmptime)
                 hourdiff = diff//3600
@@ -162,46 +159,38 @@ def get_next():
                 if mindiff < 10:
                     mindiff = "0"+str(mindiff)
                 msg += "Time left: "+str(hourdiff)+":"+str(mindiff)+"\n\n"
-            elif cmpr(table[i][1], newtime.strftime("%H:%M")) and next == False:
-                if weekday == False:
-                    msg += "--- "+str(table[i][0]).upper()+" ---\n"
+            elif cmpr(i[1], newtime.strftime("%H:%M")) and nextclass is False:
+                if weekday is False:
+                    msg += "--- "+str(i[0]).upper()+" ---\n"
                     weekday = True
-                msg += "📚" + table[i][5]+"\n🤓"+table[i][4] + \
-                    "\n🏠"+table[i][3]+"\n⏰"+table[i][1] + \
-                    " - "+table[i][2]+"\n"
+                msg += "📚" + i[5]+"\n🤓"+i[4] + "\n🏠" + \
+                    i[3]+"\n⏰"+i[1] + " - "+i[2]+"\n"
                 tmptime = newtime.strftime("%H:%M").split(":")
                 tmptime = int(tmptime[0])*3600+int(tmptime[1])*60
-                next = True
-                ttime = table[i][1].split(":")
+                nextclass = True
+                ttime = i[1].split(":")
                 ttime = int(ttime[0])*3600+int(ttime[1])*60
                 diff = ttime-tmptime
-                hourdiff = diff//3600
-                mindiff = (diff % 3600)//60
-                if hourdiff < 10:
-                    hourdiff = "0"+str(hourdiff)
-                if mindiff < 10:
-                    mindiff = "0"+str(mindiff)
-                msg += "Time until: "+str(hourdiff)+":"+str(mindiff)+"\n\n"
-    if next == False and ongoing == False:
+                hourdiff = diff//360
+    if nextclass is False and ongoing is False:
         msg = "No classes left 🎉"
-    return (msg)
+    return msg
 
 
 def get_today():
     msg = ""
     weekday = False
     newdate = datetime.now()+timedelta(hours=3)
-    for i in range(len(table)):
-        if newdate.strftime("%A") == table[i][0]:
-            if weekday == False:
-                msg += "--- "+str(table[i][0]).upper()+" ---\n"
+    for i in table:
+        if newdate.strftime("%A") == i[0]:
+            if weekday is False:
+                msg += "--- "+str(i[0]).upper()+" ---\n"
                 weekday = True
-            msg += "📚" + table[i][5]+"\n🤓"+table[i][4] + \
-                "\n🏠"+table[i][3]+"\n⏰"+table[i][1] + \
-                " - "+table[i][2]+"\n\n"
+            msg += "📚" + i[5]+"\n🤓"+i[4] + "\n🏠" + \
+                i[3]+"\n⏰"+i[1] + " - "+i[2]+"\n\n"
     if msg == '':
         msg = "No classes today 🎉"
-    return (msg)
+    return msg
 
 
 def get_tomorrow():
@@ -209,19 +198,19 @@ def get_tomorrow():
     newdate = datetime.now()+timedelta(hours=3)
     tmrw = ""
     weekday = False
-    for i in range(len(weekdays)):
-        if newdate.strftime("%A") == weekdays[i] and i == len(weekdays)-1:
-            tmrw = weekdays[0]
-        elif newdate.strftime("%A") == weekdays[i]:
-            tmrw = weekdays[i+1]
-    for i in range(len(table)):
-        if tmrw == table[i][0]:
-            if weekday == False:
-                msg += "--- "+str(table[i][0]).upper()+" ---\n"
+    for i in weekdays:
+        if newdate.strftime("%A") == i:
+            if i == len(weekdays)-1:
+                tmrw = weekdays[0]
+            else:
+                tmrw = weekdays[i+1]
+    for i in table:
+        if tmrw == i[0]:
+            if weekday is False:
+                msg += "--- "+str(i[0]).upper()+" ---\n"
                 weekday = True
-            msg += "📚" + table[i][5]+"\n🤓"+table[i][4] + \
-                "\n🏠"+table[i][3]+"\n⏰"+table[i][1] + \
-                " - "+table[i][2]+"\n\n"
+            msg += "📚" + i[5]+"\n🤓"+i[4] + "\n🏠" + \
+                i[3]+"\n⏰"+i[1] + " - "+i[2]+"\n\n"
     if msg == '':
         msg = "No classes tomorrow 🎉"
     return msg
@@ -260,14 +249,13 @@ async def callbacks_week(callback: types.CallbackQuery):
 def get_day(day):
     msg = ""
     weekday = False
-    for i in range(len(table)):
-        if day == table[i][0]:
-            if weekday == False:
-                msg += "--- "+str(table[i][0]).upper()+" ---\n"
+    for i in table:
+        if day == i[0]:
+            if weekday is False:
+                msg += "--- "+str(i[0]).upper()+" ---\n"
                 weekday = True
-            msg += "📚" + table[i][5]+"\n🤓"+table[i][4] + \
-                "\n🏠"+table[i][3]+"\n⏰"+table[i][1] + \
-                " - "+table[i][2]+"\n\n"
+            msg += "📚" + i[5]+"\n🤓"+i[4] + "\n🏠" + \
+                i[3]+"\n⏰"+i[1] + " - "+i[2]+"\n\n"
     if msg == "":
         msg = "No classes on "+str(day)+"🎉"
     return msg
@@ -285,8 +273,8 @@ async def cmd_show(message: types.Message):
         if len(users) == 0:
             msg = "No users"
         else:
-            for i in range(len(users)):
-                msg += str(users[i])+'\n'
+            for i in users:
+                msg += str(i)+'\n'
         await message.answer(msg)
     else:
         await message.answer("You are not authorized to use this command.")
@@ -337,7 +325,7 @@ class WeatherStates(StatesGroup):
 
 
 @dp.message(commands=["weather"])
-async def cmd_weather(message: types.Message, state: FSMContext):
+async def cmd_weather_start(message: types.Message, state: FSMContext):
     await message.answer("Please write your city")
     await state.set_state(WeatherStates.start)
 
@@ -359,7 +347,7 @@ class StipaStates(StatesGroup):
 
 
 @dp.message(commands=["stipa"])
-async def cmd_stipa(message: types.Message, state: FSMContext):
+async def cmd_stipa_start(message: types.Message, state: FSMContext):
     await message.answer("Please write your grades without spaces between them")
     await state.set_state(StipaStates.start)
 
@@ -369,17 +357,16 @@ async def cmd_stipa(message: types.Message, state: FSMContext):
     msg = message.text.split()
     msg = list(msg[0])
     GPA = 0
-    for i in range(len(msg)):
-        match msg[i].upper():
+    for i in msg:
+        match i.upper():
             case 'A' | 'P':
-                msg[i] = '5'
+                GPA += 5
             case 'B':
-                msg[i] = '4'
+                GPA += 4
             case 'C':
-                msg[i] = '3'
+                GPA += 3
             case 'D' | 'F':
-                msg[i] = '2'
-        GPA += int(msg[i])
+                GPA += 2
     GPA /= len(msg)
     Bmin = 3000
     Bmax = 20000
@@ -391,9 +378,9 @@ async def cmd_stipa(message: types.Message, state: FSMContext):
     await state.set_state(StipaStates.finish)
 
 
-@dp.callback_query(text="send_loco")
-async def callback_query(call: types.CallbackQuery):
-    await call.message.answer("Send location", reply_markup=types.ReplyKeyboardRemove())
+@dp.message(commands=["loc"])
+async def cmd_loc(message: types.Message):
+    await message.answer("Please send your location", reply_markup=types.ReplyKeyboardRemove())
 
 
 @dp.message(content_types=['location'])
