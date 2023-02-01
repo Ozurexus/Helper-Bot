@@ -391,7 +391,20 @@ async def cmd_stipa(message: types.Message, state: FSMContext):
     await state.set_state(StipaStates.finish)
 
 
-@dp.callback_query(text="send_loco")
+@dp.message(commands=["links"])
+async def cmd_links(message: types.Message):
+    schedule = 'https://docs.google.com/spreadsheets/d/1wJtbTxo-ZPmBIt27BKQizwxtVM4_1sKA9vDyxGBAq-w/edit#gid=398810915'
+    courses = 'https://docs.google.com/spreadsheets/d/1DZcxd6KA4BoZnEzw3BNFUz0QqO0DU3qE5VVD69yRHzc/edit?usp=sharing'
+    syllabus = 'https://eduwiki.innopolis.university/index.php/BSc:Syllabi_Table_3+1'
+    distribution = 'https://docs.google.com/spreadsheets/d/19u7D7cXOCAqj_CCCLFRxf54w5SWMcT_naC7LwiCD0PA/htmlview?usp=sharing#'
+    msg = f"Schedule: {schedule}\nCourses: {courses}\nSyllabus: {syllabus}\nDistribution: {distribution}"
+    if message.from_user.id == 1847234646:
+        gdrive = 'https://drive.google.com/drive/folders/16qU6ABeNBWshTYqSw0XtLmAwPO2kD8NA'
+        msg += f"\nGoogle Drive: {gdrive}"
+    await message.answer(msg)
+
+
+@dp.message(commands="send_loco")
 async def callback_query(call: types.CallbackQuery):
     await call.message.answer("Send location", reply_markup=types.ReplyKeyboardRemove())
 
