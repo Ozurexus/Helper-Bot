@@ -4,12 +4,10 @@ from pyowm import OWM
 from datetime import datetime, timedelta
 from aiohttp import BasicAuth
 from aiogram import Bot, Dispatcher, types
-from aiogram.dispatcher.filters import CommandObject, Text
-from aiogram.utils.keyboard import InlineKeyboardBuilder
+from aiogram.dispatcher.filters import Text
 from aiogram.client.session.aiohttp import AiohttpSession
 from contextlib import suppress
 from aiogram.exceptions import TelegramBadRequest
-from aiogram.dispatcher.filters.command import Command
 from aiogram.dispatcher.fsm.context import FSMContext
 from aiogram.dispatcher.fsm.state import StatesGroup, State
 
@@ -30,11 +28,13 @@ f.close()
 users = set(users)
 users = list(users)
 
+# for proxy launch
 logging.basicConfig(level=logging.INFO)
 auth = BasicAuth(LOGIN, PASSWORD)
 session = AiohttpSession(proxy=(PROXY_URL, auth))
 bot = Bot(token=BOT_TOKEN, session=session)
 
+# for local launch
 # bot = Bot(token=BOT_TOKEN)
 
 dp = Dispatcher()
@@ -404,12 +404,15 @@ async def cmd_links(message: types.Message):
     await message.answer(msg)
 
 
-@dp.message(commands="send_loco")
-async def callback_query(call: types.CallbackQuery):
-    await call.message.answer("Send location", reply_markup=types.ReplyKeyboardRemove())
+@dp.message(commands="send_loc")
+async def cmd_loc(message: types.Message):
+    kb = [[types.KeyboardButton(text="Send location", request_location=True)]]
+    keyboard = types.ReplyKeyboardMarkup(
+        keyboard=kb, resize_keyboard=True, one_time_keyboard=True,)
+    await message.answer("Send your location please", reply_markup=keyboard)
 
 
-@dp.message(content_types=['location'])
+@ dp.message(content_types=['location'])
 async def handle_location(message: types.Message):
     lat = round(message.location.latitude, 3)
     lon = round(message.location.longitude, 3)
@@ -421,18 +424,18 @@ async def handle_location(message: types.Message):
     await message.answer(f"Air temperature at latitude {lat}, longitude {lon}, is {temp}°C.")
 
 
-@dp.message(content_types="text")
+@ dp.message(content_types="text")
 async def echo(message: types.Message):
     print("\n", message.text, "\n")
     await message.answer("I don't understand you, human.")
 
 
-@dp.message(content_types=[types.ContentType.ANIMATION])
+@ dp.message(content_types=[types.ContentType.ANIMATION])
 async def echo_gif(message: types.Message):
     await message.reply_animation(message.animation.file_id)
 
 
-@dp.message(content_types=[types.ContentType.STICKER])
+@ dp.message(content_types=[types.ContentType.STICKER])
 async def echo_sticker(message: types.Message):
     await message.reply_sticker(message.sticker.file_id)
 
