@@ -1,3 +1,5 @@
+import requests
+import csv
 import asyncio
 import logging
 from pyowm import OWM
@@ -40,26 +42,30 @@ bot = Bot(token=BOT_TOKEN, session=session)
 dp = Dispatcher()
 day_data = {}
 week_data = {}
-table = [["Monday", "9:20", "10:50", "ONLINE", "Adil Khan",
-          "Introduction to Machine Learning (lec)"],
-         ["Monday", "13:00", "14:30", "317", "Roman Garaev",
-          "Introduction to Machine Learning (lab)"],
-         ["Tuesday", "11:00", "12:30", "ONLINE",
-          "Darko Bozhinoski", "Databases (lec)"],
-         ["Tuesday", "13:00", "14:30", "106",
-          "Hamza Salem", "Databases (tut)"],
-         ["Tuesday", "14:40", "16:10", "312",
-          "Munir Makhmutov", "Databases (lab)"],
-         ["Wednesday", "11:00", "12:30", "ONLINE",
-          "Paolo Ciancarini", "Networks (lec)"],
-         ["Wednesday", "13:00", "14:30", "105",
-          "Artem Burmyakov", "Networks (tut)"],
-         ["Wednesday", "14:40", "16:10", "314",
-          "Gerald B. Imbugwa", "Networks (lab)"],
-         ["Friday", "9:20", "10:50", "ONLINE", "Kirill Saltanov",
-          "System and Network Administration (lec)"],
-         ["Friday", "14:40", "16:10", "101", "Awwal Ishiaku",
-         "System and Network Administration (lab)"]]
+
+url = 'https://docs.google.com/spreadsheets/d/1wJtbTxo-ZPmBIt27BKQizwxtVM4_1sKA9vDyxGBAq-w/export?format=csv&id=1wJtbTxo-ZPmBIt27BKQizwxtVM4_1sKA9vDyxGBAq-w&gid=853942015'
+r = requests.get(url, allow_redirects=True)
+open('schedule.csv', 'wb').write(r.content)
+with open('schedule.csv', 'r') as f:
+    reader = csv.reader(f)
+    schedule = list(reader)
+weekdays = ['MONDAY', 'TUESDAY', 'WEDNESDAY',
+            'THURSDAY', 'FRIDAY', 'SATURDAY', 'SUNDAY']
+table = []
+weekday = 'MONDAY'
+for i in range(3, len(schedule)-3):
+    if schedule[i][0] != '' and schedule[i][0] not in weekdays and schedule[i+1][1] != '':
+        if schedule[i][1] != '':
+            start = schedule[i][0].split('-')[0]
+            end = schedule[i][0].split('-')[1]
+            table.append([weekday.capitalize(), start, end,
+                         schedule[i+2][1], schedule[i+1][1], schedule[i][1]])
+    elif schedule[i][0] in weekdays:
+        weekday = schedule[i][0]
+for row in table:
+    for i in range(len(row)):
+        if type(row[i]) == str:
+            row[i] = row[i].strip()
 
 weekdays = ["Monday", "Tuesday", "Wednesday",
             "Thursday", "Friday", "Saturday", "Sunday"]
