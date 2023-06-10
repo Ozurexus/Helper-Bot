@@ -49,6 +49,16 @@ open('schedule.csv', 'wb').write(r.content)
 with open('schedule.csv', 'r') as f:
     reader = csv.reader(f)
     schedule = list(reader)
+dict = {0: 'MONDAY', 1: 'TUESDAY', 2: 'WEDNESDAY',
+        3: 'THURSDAY', 4: 'FRIDAY', 5: 'SATURDAY', 6: 'SUNDAY'}
+reversedict = {'MONDAY': 0, 'TUESDAY': 1, 'WEDNESDAY': 2,
+               'THURSDAY': 3, 'FRIDAY': 4, 'SATURDAY': 5, 'SUNDAY': 6}
+tech = 'https://docs.google.com/spreadsheets/d/1to5PmAPIMcwOO2VRPk3tcp-6RkAiJuFR/export?format=csv&id=1to5PmAPIMcwOO2VRPk3tcp-6RkAiJuFR&gid=2046289412'
+hum = 'https://docs.google.com/spreadsheets/d/1to5PmAPIMcwOO2VRPk3tcp-6RkAiJuFR/export?format=csv&id=1to5PmAPIMcwOO2VRPk3tcp-6RkAiJuFR&gid=1002832296'
+r = requests.get(tech, allow_redirects=True)
+open('tech.csv', 'wb').write(r.content)
+r = requests.get(hum, allow_redirects=True)
+open('hum.csv', 'wb').write(r.content)
 weekdays = ['MONDAY', 'TUESDAY', 'WEDNESDAY',
             'THURSDAY', 'FRIDAY', 'SATURDAY', 'SUNDAY']
 table = []
@@ -71,22 +81,6 @@ weekdays = ["Monday", "Tuesday", "Wednesday",
             "Thursday", "Friday", "Saturday", "Sunday"]
 
 
-def get_keyboard():
-    buttons = [[
-        types.InlineKeyboardButton(text="NEXT", callback_data="day_next"),
-        types.InlineKeyboardButton(
-            text="TODAY", callback_data="day_today"),
-        types.InlineKeyboardButton(
-            text="TOMORROW", callback_data="day_tomorrow"),]]
-    keyboard = types.InlineKeyboardMarkup(inline_keyboard=buttons)
-    return keyboard
-
-
-async def update_day_text(message: types.Message, new_value: int):
-    with suppress(TelegramBadRequest):
-        await message.edit_text(new_value, reply_markup=get_keyboard())
-
-
 def file_mod(users):
     f = open("extra.txt", "r")
     array = f.readlines()
@@ -104,13 +98,122 @@ def file_mod(users):
     return
 
 
+def get_summer_schedule():
+    # r = requests.get(other, allow_redirects=True)
+    # open('other.csv', 'wb').write(r.content)
+    with open('tech.csv', 'r') as f:
+        reader = csv.reader(f)
+        tech = list(reader)
+    with open('hum.csv', 'r') as f:
+        reader = csv.reader(f)
+        hum = list(reader)
+    # with open('other.csv', 'r') as f:
+    #     reader = csv.reader(f)
+    #     other = list(reader)
+    tabletech = []
+    for row in tech:
+        if 'Week' not in row[0] and row[0] != '':
+            tabletech.append([row[0], row[1], row[2], row[3],
+                              row[4], row[5], row[6], row[7]])
+    count = 0
+    for row in tabletech:
+        for i in range(1, len(row)):
+            if 'IDV' not in row[i]:
+                row[i] = ''
+            else:
+                row[i] = 'IDV'
+                count += 1
+    # print('IDV COUNT: ', count)
+    tablehum = []
+    for row in hum:
+        if 'Week' not in row[0] and row[0] != '':
+            tablehum.append([row[0], row[1], row[2], row[3],
+                            row[4], row[5], row[6], row[7]])
+    tablehum = tablehum[2:]
+    count = 0
+    for row in tablehum:
+        for i in range(1, len(row)):
+            if 'BPM(BS2)' not in row[i]:
+                row[i] = ''
+            else:
+                row[i] = 'BPM(BS2)'
+                count += 1
+    # print('BPM COUNT: ', count)
+    table = []
+    for i in range(len(tablehum)):
+        table.append([tablehum[i][0]])
+    for i in range(len(table)):
+        for j in range(1, len(tabletech[i])):
+            if tabletech[i][j] != '' or tablehum[i][j] != '':
+                table[i].append(
+                    [tabletech[i][j]+' '+tablehum[i][j], dict[(j-1) % 7]])
+            else:
+                table[i].append(
+                    [tabletech[i][j]+tablehum[i][j], dict[(j-1) % 7]])
+    finaltable = []
+    week = 7
+    for row in table:
+        for slot in row[1:]:
+            if slot[0] != '':
+                if len(slot[0].strip().split(' ')) > 1:
+                    finaltable.append(
+                        [week//7, slot[1].strip(), row[0].split('-')[0].strip(), row[0].split('-')
+                         [1].strip(),  slot[0].strip().split(' ')[0]])
+                    finaltable.append(
+                        [week//7, slot[1].strip(), row[0].split('-')[0].strip(), row[0].split('-')
+                         [1].strip(),  slot[0].strip().split(' ')[1]])
+                else:
+                    finaltable.append(
+                        [week//7, slot[1].strip(), row[0].split('-')[0].strip(), row[0].split('-')
+                         [1].strip(),  slot[0].strip()])
+        week += 1
+    # for row in finaltable:
+    #     print(row)
+    return finaltable
+
+
+def get_keyboard():
+    buttons = [[
+        types.InlineKeyboardButton(text="NEXT", callback_data="day_next"),
+        types.InlineKeyboardButton(
+            text="TODAY", callback_data="day_today"),
+        types.InlineKeyboardButton(
+            text="TOMORROW", callback_data="day_tomorrow"),]]
+    keyboard = types.InlineKeyboardMarkup(inline_keyboard=buttons)
+    return keyboard
+
+
+def get_summer_keyboard():
+    buttons = [[
+        types.InlineKeyboardButton(text="WEEK 1", callback_data="week_1"),
+        types.InlineKeyboardButton(text="WEEK 2", callback_data="week_2"),
+        types.InlineKeyboardButton(text="WEEK 3", callback_data="week_3"),
+        types.InlineKeyboardButton(text="WEEK 4", callback_data="week_4"),],
+        [types.InlineKeyboardButton(text="WEEK 5", callback_data="week_5"),
+         types.InlineKeyboardButton(text="WEEK 6", callback_data="week_6"),
+         types.InlineKeyboardButton(text="WEEK 7", callback_data="week_7"),]]
+    keyboard = types.InlineKeyboardMarkup(inline_keyboard=buttons)
+    return keyboard
+
+
+async def update_day_text(message: types.Message, new_value: int):
+    with suppress(TelegramBadRequest):
+        await message.edit_text(new_value, reply_markup=get_keyboard())
+
+
+async def update_summer_text(message: types.Message, new_value: int):
+    with suppress(TelegramBadRequest):
+        await message.edit_text(new_value, reply_markup=get_summer_keyboard())
+
+
 @dp.message(commands=["start"])
 async def cmd_days(message: types.Message):
     if message.from_user.id not in users:
         users.append(message.from_user.id)
         file_mod(users)
     day_data[message.from_user.id] = 0
-    await message.answer("BS21-SD-01 Schedule:", reply_markup=get_keyboard())
+    # await message.answer("BS21-SD-01 Schedule:", reply_markup=get_keyboard())
+    await message.answer("My Summer Schedule:", reply_markup=get_summer_keyboard())
 
 
 @dp.callback_query(Text(text_startswith="day_"))
@@ -123,6 +226,34 @@ async def callbacks_day(callback: types.CallbackQuery):
     elif action == "tomorrow":
         day_data[callback.from_user.id] = get_tomorrow()
     await update_day_text(callback.message, day_data[callback.from_user.id])
+    await callback.answer()
+
+
+@dp.callback_query(Text(text_startswith="week_"))
+async def callbacks_week(callback: types.CallbackQuery):
+    weeknumber = int(callback.data.split("_")[1])
+    table = get_summer_schedule()
+    msg = 'Week ' + str(weeknumber) + ': \n'
+    tmptable = []
+    for row in table:
+        if row[0] == weeknumber:
+            tmptable.append(row)
+    for row in tmptable:
+        row[1] = int(reversedict[row[1]])
+    tmptable.sort(key=lambda x: x[1])
+    for row in tmptable:
+        row[1] = str(dict[row[1]])
+    curday = ''
+    for row in tmptable:
+        if row[0] == weeknumber:
+            if row[1] != curday and curday != '':
+                msg += '\n'
+            #     print(row[1], '!=', curday)
+            # else:
+            #     print(row[1], '=', curday)
+            curday = row[1]
+            msg += row[1] + ' ' + row[2] + '-' + row[3] + ' ' + row[4] + '\n'
+    await update_summer_text(callback.message, msg)
     await callback.answer()
 
 
